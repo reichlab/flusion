@@ -1,0 +1,59 @@
+abbreviation,location,location_name,hhs_region
+US,US,United States,NA
+AL,01,Alabama,4
+AK,02,Alaska,10
+AZ,04,Arizona,9
+AR,05,Arkansas,6
+CA,06,California,9
+CO,08,Colorado,8
+CT,09,Connecticut,1
+DE,10,Delaware,3
+DC,11,District of Columbia,3
+FL,12,Florida,4
+GA,13,Georgia,4
+HI,15,Hawaii,9
+ID,16,Idaho,10
+IL,17,Illinois,5
+IN,18,Indiana,5
+IA,19,Iowa,7
+KS,20,Kansas,7
+KY,21,Kentucky,4
+LA,22,Louisiana,6
+ME,23,Maine,1
+MD,24,Maryland,3
+MA,25,Massachusetts,1
+MI,26,Michigan,5
+MN,27,Minnesota,5
+MS,28,Mississippi,4
+MO,29,Missouri,7
+MT,30,Montana,8
+NE,31,Nebraska,7
+NV,32,Nevada,9
+NH,33,New Hampshire,1
+NJ,34,New Jersey,2
+NM,35,New Mexico,6
+NY,36,New York,2
+NC,37,North Carolina,4
+ND,38,North Dakota,8
+OH,39,Ohio,5
+OK,40,Oklahoma,6
+OR,41,Oregon,10
+PA,42,Pennsylvania,3
+RI,44,Rhode Island,1
+SC,45,South Carolina,4
+SD,46,South Dakota,8
+TN,47,Tennessee,4
+TX,48,Texas,6
+UT,49,Utah,8
+VT,50,Vermont,1
+VA,51,Virginia,3
+WA,53,Washington,10
+WV,54,West Virginia,3
+WI,55,Wisconsin,5
+WY,56,Wyoming,8
+AS,60,American Samoa,9
+GU,66,Guam,9
+MP,69,Northern Mariana Islands,9
+PR,72,Puerto Rico,2
+UM,74,U.S. Minor Outlying Islands,9
+VI,78,Virgin Islands,2
