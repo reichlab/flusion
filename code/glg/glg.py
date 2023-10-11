@@ -84,7 +84,10 @@ class GLG():
         return xmas_effects_expanded.at[s, w].get()
     
     
-    def model(self, y_trans=None, s=None, w=None, w_xmas=None):
+    def model(self,
+              y_trans_0=None, s_0=None, w_0=None,
+              y_trans_1=None, s_1=None, w_1=None,
+              w_xmas=None):
         '''
         Generalized logistic growth model for disease incidence
         
@@ -112,87 +115,87 @@ class GLG():
         
         # main curve parameters
         ## delta = upper asymptote minus lower asymptote: (K - A) in Wikipedia's notation
-        delta_concentration = numpyro.sample(
-            'delta_concentration',
+        delta_concentration_0 = numpyro.sample(
+            'delta_concentration_0',
             dist.Exponential(rate=10))
-        delta_rate = numpyro.sample(
-            'delta_rate',
+        delta_rate_0 = numpyro.sample(
+            'delta_rate_0',
             dist.Exponential(rate=10))
-        delta = numpyro.sample(
-            'delta',
-            dist.Gamma(concentration=delta_concentration,
-                       rate=delta_rate),
+        delta_0 = numpyro.sample(
+            'delta_0',
+            dist.Gamma(concentration=delta_concentration_0,
+                       rate=delta_rate_0),
             sample_shape=(self.num_seasons,))
         
         ## beta = growth rate parameter: B in Wikipedia's notation
-        beta_concentration = numpyro.sample(
-            'beta_concentration',
+        beta_concentration_0 = numpyro.sample(
+            'beta_concentration_0',
             dist.Exponential(rate=10))
-        beta_rate = numpyro.sample(
-            'beta_rate',
+        beta_rate_0 = numpyro.sample(
+            'beta_rate_0',
             dist.Exponential(rate=10))
-        beta = numpyro.sample(
-            'beta',
-            dist.Gamma(concentration=beta_concentration,
-                       rate=beta_rate),
+        beta_0 = numpyro.sample(
+            'beta_0',
+            dist.Gamma(concentration=beta_concentration_0,
+                       rate=beta_rate_0),
             sample_shape=(self.num_seasons,))
         
         ## reference week parameter: M
-        ref_w_mean = numpyro.sample(
-            'ref_w_mean',
+        ref_w_mean_0 = numpyro.sample(
+            'ref_w_mean_0',
             dist.Normal(loc=26, scale = 10))
-        ref_w_scale = numpyro.sample(
-            'ref_w_scale',
+        ref_w_scale_0 = numpyro.sample(
+            'ref_w_scale_0',
             dist.HalfNormal(10))
-        ref_w = numpyro.sample(
-            'ref_w',
-            dist.Normal(loc=ref_w_mean, scale=ref_w_scale),
+        ref_w_0 = numpyro.sample(
+            'ref_w_0',
+            dist.Normal(loc=ref_w_mean_0, scale=ref_w_scale_0),
             sample_shape=(self.num_seasons,))
         
         ## which side of peak experiences faster growth: nu
-        nu_concentration = numpyro.sample(
-            'nu_concentration',
+        nu_concentration_0 = numpyro.sample(
+            'nu_concentration_0',
             dist.Exponential(rate=10))
-        nu_rate = numpyro.sample(
-            'nu_rate',
+        nu_rate_0 = numpyro.sample(
+            'nu_rate_0',
             dist.Exponential(rate=10))
-        nu = numpyro.sample(
-            'nu',
-            dist.Gamma(concentration=nu_concentration,
-                       rate=nu_rate),
+        nu_0 = numpyro.sample(
+            'nu_0',
+            dist.Gamma(concentration=nu_concentration_0,
+                       rate=nu_rate_0),
             sample_shape=(self.num_seasons,))
         
         
         # Christmas/holiday effect parameters
-        xmas_mean_ar_rho = numpyro.sample(
-            'xmas_mean_ar_rho',
+        xmas_mean_ar_rho_0 = numpyro.sample(
+            'xmas_mean_ar_rho_0',
             dist.Uniform()
         )
-        xmas_mean_ar_sigma = numpyro.sample(
-            'xmas_mean_ar_sigma',
+        xmas_mean_ar_sigma_0 = numpyro.sample(
+            'xmas_mean_ar_sigma_0',
             dist.HalfNormal()
         )
-        xmas_mean_effect = numpyro.sample(
-            'xmas_mean_effect',
+        xmas_mean_effect_0 = numpyro.sample(
+            'xmas_mean_effect_0',
             dist.MultivariateNormal(precision_matrix=self.make_ar1_precision(dim=self.xmas_window,
-                                                                             rho=xmas_mean_ar_rho,
-                                                                             sigma=xmas_mean_ar_sigma))
+                                                                             rho=xmas_mean_ar_rho_0,
+                                                                             sigma=xmas_mean_ar_sigma_0))
         )
 
-        xmas_season_ar_rho = numpyro.sample(
-            'xmas_season_ar_rho',
+        xmas_season_ar_rho_0 = numpyro.sample(
+            'xmas_season_ar_rho_0',
             dist.Uniform()
         )
-        xmas_season_ar_sigma = numpyro.sample(
-            'xmas_season_ar_sigma',
+        xmas_season_ar_sigma_0 = numpyro.sample(
+            'xmas_season_ar_sigma_0',
             dist.HalfNormal()
         )
-        xmas_season_effect = numpyro.sample(
-            'xmas_season_effect',
+        xmas_season_effect_0 = numpyro.sample(
+            'xmas_season_effect_0',
             dist.MultivariateNormal(
                 precision_matrix=self.make_ar1_precision(dim=self.xmas_window,
-                                                         rho=xmas_season_ar_rho,
-                                                         sigma=xmas_season_ar_sigma)),
+                                                         rho=xmas_season_ar_rho_0,
+                                                         sigma=xmas_season_ar_sigma_0)),
             sample_shape=(self.num_seasons,)
         )
         # print('xmas_season_effect.shape')
@@ -267,33 +270,32 @@ class GLG():
         # print(xmas_ref_w.shape)
         # print('xmas_nu.shape')
         # print(xmas_nu.shape)
-        # mean_y_trans = self.glg_inc_curve(s, w, delta, beta, ref_w, nu)#+ \
-        mean_y = self.glg_inc_curve(s, w, delta, beta, ref_w, nu)
+        mean_y_0 = self.glg_inc_curve(s_0, w_0, delta_0, beta_0, ref_w_0, nu_0)
         
         # for xmas_offset in jnp.arange(-self.xmas_half_window, self.xmas_half_window + 1):
         #     w_hol = w_xmas + xmas_offset
         
         if self.transform is None:
-            mean_y_trans = mean_y + \
-                self.xmas_effect(s, w, w_xmas, xmas_mean_effect, xmas_season_effect)
+            mean_y_trans_0 = mean_y_0 + \
+                self.xmas_effect(s_0, w_0, w_xmas, xmas_mean_effect_0, xmas_season_effect_0)
         elif self.transform == '4rt':
-            mean_y_trans = jnp.power(0.01 + mean_y, 0.25) + \
-                self.xmas_effect(s, w, w_xmas, xmas_mean_effect, xmas_season_effect)
+            mean_y_trans_0 = jnp.power(0.01 + mean_y_0, 0.25) + \
+                self.xmas_effect(s_0, w_0, w_xmas, xmas_mean_effect_0, xmas_season_effect_0)
         elif self.transform == 'sqrt':
-            mean_y_trans = jnp.sqrt(0.01 + mean_y) + \
-                self.xmas_effect(s, w, w_xmas, xmas_mean_effect, xmas_season_effect)
+            mean_y_trans_0 = jnp.sqrt(0.01 + mean_y_0) + \
+                self.xmas_effect(s_0, w_0, w_xmas, xmas_mean_effect_0, xmas_season_effect_0)
         
         # standard deviation of observation noise on transformed scale
-        sigma = numpyro.sample('sigma', dist.HalfNormal(0.1))
+        sigma_0 = numpyro.sample('sigma', dist.HalfNormal(0.1))
         
         # observation model for y on transformed scale
         numpyro.sample(
-            'y_trans',
-            dist.Normal(loc=mean_y_trans, scale=sigma),
-            obs=y_trans)
+            'y_trans_0',
+            dist.Normal(loc=mean_y_trans_0, scale=sigma_0),
+            obs=y_trans_0)
     
     
-    def fit(self, y, s, w, w_xmas,
+    def fit(self, y_0, s_0, w_0, y_1, s_1, w_1, w_xmas,
             rng_key, num_warmup=1000, num_samples=1000, num_chains=1,
             print_summary=False):
         '''
@@ -334,15 +336,22 @@ class GLG():
             progress_bar=False if 'NUMPYRO_SPHINXBUILD' in os.environ else True)
         
         if self.transform is None:
-            y_trans = y
+            y_trans_0 = y_0
+            y_trans_1 = y_1
         elif self.transform == 'log':
-            y_trans = jnp.log(y)
+            y_trans_0 = jnp.log(y_0)
+            y_trans_1 = jnp.log(y_1)
         elif self.transform == '4rt':
-            y_trans = jnp.power(0.01 + y, 0.25)
+            y_trans_0 = jnp.power(0.01 + y_0, 0.25)
+            y_trans_1 = jnp.power(0.01 + y_1, 0.25)
         elif self.transform == 'sqrt':
-            y_trans = jnp.sqrt(0.01 + y)
+            y_trans_0 = jnp.sqrt(0.01 + y_0)
+            y_trans_1 = jnp.sqrt(0.01 + y_1)
         
-        self.mcmc.run(rng_key, y_trans=y_trans, s=s, w=w, w_xmas=w_xmas)
+        self.mcmc.run(rng_key,
+                      y_trans_0=y_trans_0, s_0=s_0, w_0=w_0,
+                      y_trans_1=y_trans_1, s_1=s_1, w_1=w_1,
+                      w_xmas=w_xmas)
         print('\nMCMC elapsed time:', time.time() - start)
         
         if print_summary:
@@ -378,15 +387,19 @@ class GLG():
             predictive = numpyro.infer.Predictive(self.model,
                                                   posterior_samples=condition)
         
-        preds = predictive(rng_key, s=s, w=w, w_xmas=w_xmas)
+        preds = predictive(rng_key, s_0=s, w_0=w, s_1=s, w_1=w, w_xmas=w_xmas)
         
         if self.transform is None:
-            preds['y'] = preds['y_trans']
+            preds['y_0'] = preds['y_trans_0']
+            preds['y_1'] = preds['y_trans_1']
         elif self.transform == 'log':
-            preds['y'] = jnp.exp(preds['y_trans'])
+            preds['y_0'] = jnp.exp(preds['y_trans_0'])
+            preds['y_1'] = jnp.exp(preds['y_trans_1'])
         elif self.transform == '4rt':
-            preds['y'] = jnp.power(preds['y_trans'], 4)
+            preds['y_0'] = jnp.power(preds['y_trans_0'], 4)
+            preds['y_1'] = jnp.power(preds['y_trans_1'], 4)
         elif self.transform == 'sqrt':
-            preds['y'] = jnp.power(preds['y_trans'], 2)
+            preds['y_0'] = jnp.power(preds['y_trans_0'], 2)
+            preds['y_1'] = jnp.power(preds['y_trans_1'], 2)
         
         return preds
