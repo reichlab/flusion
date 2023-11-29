@@ -32,6 +32,20 @@ hosps_wk <- hosps_wk %>%
 readr::write_csv(hosps_wk, 'data-raw/influenza-hhs/hhs.csv')
 
 
+hosps_wk_prev_draft2 <- readr::read_csv('data-raw/influenza-hhs/hhs-2023-10-18-draft2.csv') |>
+    dplyr::mutate(as_of = "2023-10-18-draft2")
+# hosps_wk_now_draft1 <- readr::read_csv('data-raw/influenza-hhs/hhs-2023-10-18-draft1.csv') |>
+#     dplyr::mutate(as_of = "2023-10-18-draft1")
 
-ggplot(data = hosps |> dplyr::filter(location == "US", date >= "2022-09-01")) +
-    geom_line(mapping = aes(x = date, y = inc))
+
+ggplot(data = dplyr::bind_rows(
+  hosps_wk_prev_draft2 |>
+    dplyr::filter(date >= "2023-09-01"),
+  # hosps_wk_now_draft1 |>
+  #   dplyr::filter(date >= "2023-09-01"),
+  hosps_wk |>
+    dplyr::filter(date >= "2023-09-01") |>
+    dplyr::mutate(as_of = "2023-10-25-draft2"))) +
+  geom_line(mapping = aes(x = date, y = inc, color = as_of, linetype = as_of)) +
+  facet_wrap(~ location, scales="free_y") +
+  theme_bw()
