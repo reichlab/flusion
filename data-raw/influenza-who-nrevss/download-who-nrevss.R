@@ -148,3 +148,18 @@ ggplot() +
   geom_line(data = combined, mapping = aes(x = season_week, y = prop_b), color = "cornflowerblue") +
   facet_grid(region ~ season) +
   theme_bw()
+
+
+ggplot(data = combined |>
+         dplyr::filter(season >= "2010/11", region %in% c("National", paste0("Region ", 1:10)))) +
+  geom_line(mapping = aes(x = season_week, y = prop_a_h1), color = "red") +
+  geom_line(mapping = aes(x = season_week, y = prop_a_h3), color = "orange") +
+  geom_line(mapping = aes(x = season_week, y = prop_b), color = "cornflowerblue") +
+  facet_grid(region ~ season) +
+  theme_bw()
+
+ggplot(data = combined |>
+         dplyr::filter(season >= "2010/11", region %in% c("National", paste0("Region ", 1:10)))) +
+  geom_line(mapping = aes(x = season_week, y = percent_positive), color = "cornflowerblue") +
+  facet_grid(region ~ season) +
+  theme_bw()

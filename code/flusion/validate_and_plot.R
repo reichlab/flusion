@@ -66,7 +66,9 @@ for (timespan in c("last_season", "rolling_12wk")) {
     data_start = max(target_data$date) - 12 * 7
   }
   
-  for (incl_models in c("flusion_compare")) {
+  for (incl_models in c("components", "flusion_compare")) {
+  # for (incl_models in c("all")) {
+  # for (incl_models in c("flusion_compare")) {
   # for (incl_models in c("all", "qr", "sarix", "flusion")) {
   # for (incl_models in c("all", "bootstrap", "qr", "sarix")) {
   # for (incl_models in c("sarix_sqrt", "sarix_4rt", "sarix")) {
