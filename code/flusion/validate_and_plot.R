@@ -5,6 +5,8 @@ library(lubridate)
 
 current_ref_date <- lubridate::ceiling_date(Sys.Date(), "week") - days(1)
 
+locations <- read.csv("submissions-hub/auxiliary-data/locations.csv")
+
 # hubValidations::validate_submission(
 #     hub_path="submissions-hub",
 #     file_path=paste0("UMass-flusion/", current_ref_date, "-UMass-flusion.csv"))
@@ -52,7 +54,8 @@ forecast <- dplyr::bind_rows(
   # read.csv("submissions-hub/model-output/UMass-sarix_4rt/2023-10-14-UMass-sarix_4rt.csv") |>
   #   dplyr::mutate(model_id = "UMass-sarix_4rt")
 )
-forecast <- as_model_out_tbl(forecast)
+forecast <- as_model_out_tbl(forecast) |>
+  dplyr::left_join(locations)
 head(forecast)
 
 target_data <- readr::read_csv("https://raw.githubusercontent.com/cdcepi/FluSight-forecast-hub/main/target-data/target-hospital-admissions.csv")
@@ -65,7 +68,7 @@ for (timespan in c("last_season", "rolling_12wk")) {
   } else {
     data_start = max(target_data$date) - 12 * 7
   }
-  
+
   for (incl_models in c("components", "flusion_compare")) {
   # for (incl_models in c("all")) {
   # for (incl_models in c("flusion_compare")) {
@@ -95,28 +98,28 @@ for (timespan in c("last_season", "rolling_12wk")) {
     } else if (incl_models == "sarix_4rt") {
       incl_models_vec = "UMass-sarix_4rt"
     }
-    
+
     p <- plot_step_ahead_model_output(
       forecast |> dplyr::filter(model_id %in% incl_models_vec),
       target_data |> dplyr::filter(date >= data_start),
       x_col_name = "target_end_date",
       x_truth_col_name = "date",
       intervals = 0.95,
-      facet = "location",
+      facet = "location_name",
       facet_scales = "free_y",
       facet_nrow = 15,
       use_median_as_point = TRUE,
       interactive = FALSE,
       show_plot = FALSE
     )
-    
+
     save_dir <- paste0("plots/", current_ref_date)
     if (!dir.exists(save_dir)) {
       dir.create(save_dir, recursive = TRUE)
     }
-    
+
     save_path <- file.path(save_dir, paste0(current_ref_date, "_", incl_models, "_", timespan, ".pdf"))
-    
+
     pdf(save_path, height = 24, width = 14)
     print(p)
     dev.off()
