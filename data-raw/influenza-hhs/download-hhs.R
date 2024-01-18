@@ -30,13 +30,12 @@ hosps_wk <- hosps_wk %>%
     dplyr::filter(date >= "2022-09-01", !(location %in% c("60", "78")))
 
 readr::write_csv(hosps_wk, 'data-raw/influenza-hhs/hhs.csv')
-
+readr::write_csv(hosps_wk, paste0('data-raw/influenza-hhs/hhs-', Sys.Date(), '.csv'))
 
 hosps_wk_prev_draft2 <- readr::read_csv('data-raw/influenza-hhs/hhs-2023-10-18-draft2.csv') |>
     dplyr::mutate(as_of = "2023-10-18-draft2")
 # hosps_wk_now_draft1 <- readr::read_csv('data-raw/influenza-hhs/hhs-2023-10-18-draft1.csv') |>
 #     dplyr::mutate(as_of = "2023-10-18-draft1")
-
 
 ggplot(data = dplyr::bind_rows(
   hosps_wk_prev_draft2 |>

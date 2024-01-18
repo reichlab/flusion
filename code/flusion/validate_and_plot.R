@@ -54,8 +54,8 @@ forecast <- dplyr::bind_rows(
   # read.csv("submissions-hub/model-output/UMass-sarix_4rt/2023-10-14-UMass-sarix_4rt.csv") |>
   #   dplyr::mutate(model_id = "UMass-sarix_4rt")
 )
-forecast <- as_model_out_tbl(forecast) |>
-  dplyr::left_join(locations)
+forecast <- as_model_out_tbl(forecast) #|>
+#  dplyr::left_join(locations)
 head(forecast)
 
 target_data <- readr::read_csv("https://raw.githubusercontent.com/cdcepi/FluSight-forecast-hub/main/target-data/target-hospital-admissions.csv")
@@ -105,7 +105,7 @@ for (timespan in c("last_season", "rolling_12wk")) {
       x_col_name = "target_end_date",
       x_truth_col_name = "date",
       intervals = 0.95,
-      facet = "location_name",
+      facet = "location",
       facet_scales = "free_y",
       facet_nrow = 15,
       use_median_as_point = TRUE,
