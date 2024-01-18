@@ -39,10 +39,10 @@ forecast <- dplyr::bind_rows(
   #   dplyr::mutate(model_id = "UMass-flusion_second_draft"),
   read.csv(paste0("submissions-hub/model-output/UMass-flusion/", current_ref_date, "-UMass-flusion.csv")) |>
     dplyr::mutate(model_id = "UMass-flusion"),
-  read.csv(paste0("submissions-hub/model-output/UMass-flusion_frog/", current_ref_date, "-UMass-flusion_frog.csv")) |>
-    dplyr::mutate(model_id = "UMass-flusion_frog"),
-  read.csv(paste0("submissions-hub/model-output/UMass-flusion_hamster/", current_ref_date, "-UMass-flusion_hamster.csv")) |>
-    dplyr::mutate(model_id = "UMass-flusion_hamster"),
+  # read.csv(paste0("submissions-hub/model-output/UMass-flusion_frog/", current_ref_date, "-UMass-flusion_frog.csv")) |>
+  #  dplyr::mutate(model_id = "UMass-flusion_frog"),
+  # read.csv(paste0("submissions-hub/model-output/UMass-flusion_hamster/", current_ref_date, "-UMass-flusion_hamster.csv")) |>
+  #  dplyr::mutate(model_id = "UMass-flusion_hamster"),
   # read.csv(paste0("submissions-hub/model-output/UMass-gbq_bootstrap/", current_ref_date, "-UMass-gbq_bootstrap.csv")) |>
   #   dplyr::mutate(model_id = "UMass-gbq_bootstrap"),
   read.csv(paste0("submissions-hub/model-output/UMass-gbq_qr/", current_ref_date, "-UMass-gbq_qr.csv")) |>
@@ -53,9 +53,8 @@ forecast <- dplyr::bind_rows(
     dplyr::mutate(model_id = "UMass-sarix"),
   # read.csv("submissions-hub/model-output/UMass-sarix_4rt/2023-10-14-UMass-sarix_4rt.csv") |>
   #   dplyr::mutate(model_id = "UMass-sarix_4rt")
-)
-forecast <- as_model_out_tbl(forecast) #|>
-#  dplyr::left_join(locations)
+) |>
+  dplyr::left_join(locations)
 head(forecast)
 
 target_data <- readr::read_csv("https://raw.githubusercontent.com/cdcepi/FluSight-forecast-hub/main/target-data/target-hospital-admissions.csv")
@@ -105,7 +104,7 @@ for (timespan in c("last_season", "rolling_12wk")) {
       x_col_name = "target_end_date",
       x_truth_col_name = "date",
       intervals = 0.95,
-      facet = "location",
+      facet = "location_name",
       facet_scales = "free_y",
       facet_nrow = 15,
       use_median_as_point = TRUE,
