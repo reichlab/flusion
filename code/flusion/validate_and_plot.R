@@ -39,10 +39,10 @@ forecast <- dplyr::bind_rows(
   #   dplyr::mutate(model_id = "UMass-flusion_second_draft"),
   read.csv(paste0("submissions-hub/model-output/UMass-flusion/", current_ref_date, "-UMass-flusion.csv")) |>
     dplyr::mutate(model_id = "UMass-flusion"),
-  # read.csv(paste0("submissions-hub/model-output/UMass-flusion_frog/", current_ref_date, "-UMass-flusion_frog.csv")) |>
-  #  dplyr::mutate(model_id = "UMass-flusion_frog"),
-  # read.csv(paste0("submissions-hub/model-output/UMass-flusion_hamster/", current_ref_date, "-UMass-flusion_hamster.csv")) |>
-  #  dplyr::mutate(model_id = "UMass-flusion_hamster"),
+  read.csv(paste0("submissions-hub/model-output/UMass-flusion_frog/", current_ref_date, "-UMass-flusion_frog.csv")) |>
+   dplyr::mutate(model_id = "UMass-flusion_frog"),
+  read.csv(paste0("submissions-hub/model-output/UMass-flusion_hamster/", current_ref_date, "-UMass-flusion_hamster.csv")) |>
+   dplyr::mutate(model_id = "UMass-flusion_hamster"),
   # read.csv(paste0("submissions-hub/model-output/UMass-gbq_bootstrap/", current_ref_date, "-UMass-gbq_bootstrap.csv")) |>
   #   dplyr::mutate(model_id = "UMass-gbq_bootstrap"),
   read.csv(paste0("submissions-hub/model-output/UMass-gbq_qr/", current_ref_date, "-UMass-gbq_qr.csv")) |>
