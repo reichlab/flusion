@@ -158,3 +158,23 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# macOS system files
+*.DS_Store
+
+# misc files create operationally that we don't want on github
+src/
+plots/
+submissions-hub/model-metadata/
+submissions-hub/model-metadata/CU-ensemble.yml
+submissions-hub/model-metadata/FluSight-ensemble.yml
+submissions-hub/model-metadata/PSI-PROF.yml
+submissions-hub/model-metadata/README.md
+submissions-hub/model-metadata/SGroup-RandomForest.yml
+submissions-hub/model-metadata/UVAFluX-Ensemble.yml
+submissions-hub/model-metadata/fjordhest-ensemble.yml
+submissions-hub/model-output-first-draft/
+submissions-hub/model-output/UMass-flusion_first_draft/
+submissions-hub/model-output/UMass-flusion_frog/
+submissions-hub/model-output/UMass-flusion_hamster/
+submissions-hub/model-output/UMass-flusion_second_draft/
