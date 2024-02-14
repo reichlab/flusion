@@ -1,0 +1,18 @@
+[project]
+name = 'data_pipeline'
+description = 'Pipeline for loading flu data'
+license = {text = 'MIT License'}
+readme = 'README.md'
+requires-python = '>=3.9'
+version = '0.0.1'
+classifiers = [
+    'Programming Language :: Python :: 3',
+    'License :: OSI Approved :: MIT License',
+]
+
+[build-system]
+# Minimum requirements for the build system to execute.
+requires = ['setuptools', 'wheel']
+
+[tool.setuptools.packages.find]
+where = ["src"]
