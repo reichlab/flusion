@@ -303,8 +303,12 @@ class FluDataLoader():
     return dat
 
 
-  def load_hhs(self, rates=True):
-    dat = pd.read_csv(self.data_raw / 'influenza-hhs/hhs.csv')
+  def load_hhs(self, rates=True, drop_pandemic_seasons=True):
+    if drop_pandemic_seasons:
+      file_path = 'influenza-hhs/hhs.csv'
+    else:
+      file_path = 'influenza-hhs/hhs_complete.csv'
+    dat = pd.read_csv(self.data_raw / file_path)
     dat.rename(columns={'date': 'wk_end_date'}, inplace=True)
 
     ew_str = dat.apply(utils.date_to_ew_str, axis=1)
@@ -323,3 +327,109 @@ class FluDataLoader():
     dat = dat[['agg_level', 'location', 'season', 'season_week', 'wk_end_date', 'inc']]
     dat['source'] = 'hhs'
     return dat
+
+
+  def load_data(self, hhs_kwargs={}):
+    us_census = self.load_us_census()
+    fips_mappings = pd.read_csv(self.data_raw / 'fips-mappings/fips_mappings.csv')
+    
+    df_hhs = self.load_hhs(**hhs_kwargs)
+    df_hhs['inc'] = df_hhs['inc'] + 0.75**4
+    # df_hhs.loc[df_hhs['inc'] < 0.75**4, 'inc'] = 0.75**4
+    
+    df_ilinet_full = self.load_ilinet()
+    # df_ilinet_full.loc[df_ilinet_full['inc'] < np.exp(-7), 'inc'] = np.exp(-7)
+    df_ilinet_full['inc'] = (df_ilinet_full['inc'] + np.exp(-7)) * 4
+    
+    # aggregate ilinet sites in New York to state level,
+    # mainly to facilitate adding populations
+    ilinet_nonstates = ['National', 'Region 1', 'Region 2', 'Region 3',
+                        'Region 4', 'Region 5', 'Region 6', 'Region 7',
+                        'Region 8', 'Region 9', 'Region 10']
+    df_ilinet_by_state = df_ilinet_full \
+      .loc[(~df_ilinet_full['location'].isin(ilinet_nonstates)) &
+          (df_ilinet_full['location'] != '78')] \
+      .assign(state = lambda x: np.where(x['location'].isin(['New York', 'New York City']),
+                                        'New York',
+                                        x['location'])) \
+      .assign(state = lambda x: np.where(x['state'] == 'Commonwealth of the Northern Mariana Islands',
+                                        'Northern Mariana Islands',
+                                        x['state'])) \
+      .merge(
+        fips_mappings.rename(columns={'location': 'fips'}),
+        left_on='state',
+        right_on='location_name') \
+      .groupby(['state', 'fips', 'season', 'season_week', 'wk_end_date', 'source']) \
+      .apply(lambda x: pd.DataFrame({'inc': [np.mean(x['inc'])]})) \
+      .reset_index() \
+      .drop(columns = ['state', 'level_6']) \
+      .rename(columns = {'fips': 'location'}) \
+      .assign(agg_level = 'state')
+    
+    df_ilinet_nonstates = df_ilinet_full.loc[df_ilinet_full['location'].isin(ilinet_nonstates)].copy()
+    df_ilinet_nonstates['location'] = np.where(df_ilinet_nonstates['location'] == 'National',
+                                              'US',
+                                              df_ilinet_nonstates['location'])
+    df_ilinet = pd.concat(
+      [df_ilinet_nonstates, df_ilinet_by_state],
+      axis = 0)
+    
+    df_flusurv_by_site = self.load_flusurv_rates()
+    # df_flusurv_by_site.loc[df_flusurv_by_site['inc'] < np.exp(-3), 'inc'] = np.exp(-3)
+    df_flusurv_by_site['inc'] = (df_flusurv_by_site['inc'] + np.exp(-3)) / 2.5
+    
+    # aggregate flusurv sites in New York to state level,
+    # mainly to facilitate adding populations
+    df_flusurv_by_state = df_flusurv_by_site \
+      .loc[df_flusurv_by_site['location'] != 'Entire Network'] \
+      .assign(state = lambda x: np.where(x['location'].isin(['New York - Albany', 'New York - Rochester']),
+                                        'New York',
+                                        x['location'])) \
+      .merge(
+        fips_mappings.rename(columns={'location': 'fips'}),
+        left_on='state',
+        right_on='location_name') \
+      .groupby(['fips', 'season', 'season_week', 'wk_end_date', 'source']) \
+      .apply(lambda x: pd.DataFrame({'inc': [np.mean(x['inc'])]})) \
+      .reset_index() \
+      .drop(columns = ['level_5']) \
+      .rename(columns = {'fips': 'location'}) \
+      .assign(agg_level = 'state')
+    
+    df_flusurv_us = df_flusurv_by_site.loc[df_flusurv_by_site['location'] == 'Entire Network'].copy()
+    df_flusurv_us['location'] = 'US'
+    df_flusurv = pd.concat(
+      [df_flusurv_us, df_flusurv_by_state],
+      axis = 0)
+    
+    df = pd.concat(
+      [df_hhs, df_ilinet, df_flusurv],
+      axis=0).sort_values(['source', 'location', 'wk_end_date'])
+    
+    # log population
+    df = df.merge(us_census, how='left', on=['location', 'season'])
+    df['log_pop'] = np.log(df['pop'])
+    
+    # process response variable:
+    # - fourth root transform to stabilize variability
+    # - divide by location- and source- specific 95th percentile
+    # - center relative to location- and source- specific mean
+    #   (note non-standard order of center/scale)
+    df['inc_4rt'] = (df['inc'] + 0.01)**0.25
+    df['inc_4rt_scale_factor'] = df \
+      .assign(inc_4rt_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
+                                                    np.nan,
+                                                    x['inc_4rt'])) \
+      .groupby(['source', 'location'])['inc_4rt_in_season'] \
+      .transform(lambda x: x.quantile(0.95))
+    
+    df['inc_4rt_cs'] = df['inc_4rt'] / (df['inc_4rt_scale_factor'] + 0.01)
+    df['inc_4rt_center_factor'] = df \
+      .assign(inc_4rt_cs_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
+                                                    np.nan,
+                                                    x['inc_4rt_cs'])) \
+      .groupby(['source', 'location'])['inc_4rt_cs_in_season'] \
+      .transform(lambda x: x.mean())
+    df['inc_4rt_cs'] = df['inc_4rt_cs'] - df['inc_4rt_center_factor']
+    
+    return(df)
