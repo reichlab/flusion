@@ -9,6 +9,8 @@ library(plotly)
 library(here)
 setwd(here::here())
 
+source("code/eval/scoring_helpers.R")
+
 current_ref_date <- lubridate::ceiling_date(Sys.Date(), "week") - lubridate::days(1)
 
 hub_path <- "../FluSight-forecast-hub"
@@ -20,26 +22,48 @@ forecasts <- hub_con |>
   ) |>
   dplyr::collect() |>
   as_model_out_tbl() |>
-  dplyr::filter(horizon >= 0, reference_date >= "2023-10-07", location != "US", location != "78") #|>
-
-# ens_fc <- forecasts |>
-#   dplyr::filter(model_id == "FluSight-ensemble",
-#                 horizon >= 0, reference_date >= "2023-10-07", location != "US", location != "78") #|>
-  # dplyr::mutate(quantile = format(quantile, 3)) %>%
-  # dplyr::filter(quantile == "0.500")
-
-
+  dplyr::filter(horizon >= 0,
+                reference_date >= "2023-10-14",
+                location != "US",
+                location != "78")
 
 target_data <- readr::read_csv("https://raw.githubusercontent.com/cdcepi/FluSight-forecast-hub/main/target-data/target-hospital-admissions.csv")
 head(target_data)
 
+by <- list("model",
+          #  c("model", "horizon"),
+           c("model", "horizon", "reference_date"))
+
+scores <- compute_scores(forecasts = forecasts,
+                         target_data = target_data,
+                         by = by,
+                         submission_threshold = 0.75)
+
+scores[[1]]
+
+scores_w_horizon <- scores[[3]]
+p_by_horizon <- ggplot(data = scores_w_horizon |>
+                # dplyr::filter(model %in% models_to_keep) |>
+                dplyr::mutate(is_umass = grepl("UMass", model, fixed = TRUE))) +
+  geom_line(mapping = aes(x = reference_date, y = wis_scaled_relative_skill,
+                          color = model, size = factor(is_umass))) +
+  geom_point(mapping = aes(x = reference_date, y = wis_scaled_relative_skill,
+                           color = model, size = factor(is_umass))) +
+  scale_size_manual(values = c(0.25, 1)) +
+  facet_wrap(~ horizon) +
+  theme_bw()
+
+ggplotly(p_by_horizon)
+
+
+
 
 data_for_su <- forecasts |>
   dplyr::left_join(
-    target_data |> dplyr::select(target_end_date = date, location, true_value = value),
+    target_data |> dplyr::select(target_end_date = date, location, observed = value),
     by = c("location", "target_end_date")
   ) |>
-  dplyr::rename(model=model_id, quantile=output_type_id, prediction=value) |>
+  dplyr::rename(model=model_id, quantile_level=output_type_id, predicted=value) |>
   dplyr::mutate(quantile = as.numeric(quantile))
 
 # data_for_su %>%
