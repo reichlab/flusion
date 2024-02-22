@@ -26,6 +26,8 @@ hosps_wk <- hosps %>%
     dplyr::group_by(location, date) %>%
     dplyr::summarize(inc = sum(inc, na.rm = FALSE), .groups = "drop")
 
+readr::write_csv(hosps_wk, 'data-raw/influenza-hhs/hhs_complete.csv')
+
 hosps_wk <- hosps_wk %>%
     dplyr::filter(date >= "2022-09-01", !(location %in% c("60", "78")))
 
