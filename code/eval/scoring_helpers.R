@@ -20,7 +20,7 @@ compute_raw_scores <- function(data_for_su, scoring_funs) {
       c("location", "reference_date", "horizon", "target_end_date", "target",
         "model")) |>
     scoringutils::as_forecast() |>
-    scoringutils::add_coverage() |>
+    # scoringutils::add_coverage() |>
     scoringutils::score(metrics = scoring_funs)
   return(raw_scores)
 }
@@ -38,11 +38,16 @@ compute_summarized_scores <- function(raw_scores, by, data_for_su,
                        names_prefix = "q_coverage_")
 
   summarized_scores <- raw_scores |>
+    scoringutils::add_pairwise_comparison(
+      by = by,
+      baseline = "FluSight-baseline") |>
+    scoringutils::add_pairwise_comparison(
+      by = by,
+      baseline = "FluSight-baseline",
+      metric = "ae_median") |>
     scoringutils::summarise_scores(by = by) |>
-    scoringutils::add_pairwise_comparison(baseline = "FluSight-baseline") |>
-    scoringutils::add_pairwise_comparison(baseline = "FluSight-baseline",
-                                          relative_skill_metric = "ae_median") |>
     scoringutils::summarise_scores(
+      by = by,
       fun = signif,
       digits = 3
     ) |>
@@ -67,7 +72,7 @@ compute_scores <- function(
       wis = scoringutils::wis,
       interval_coverage_50 = scoringutils::interval_coverage,
       interval_coverage_95 = function(...) {
-        scoringutils::run_safely(..., range = 95,
+        scoringutils::run_safely(..., interval_range = 95,
                                  fun = scoringutils::interval_coverage)
       },
       ae_median = scoringutils::ae_median_quantile),

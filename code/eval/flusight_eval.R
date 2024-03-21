@@ -1,4 +1,5 @@
 library(hubUtils)
+library(hubData)
 library(scoringutils)
 
 library(lubridate)
@@ -34,14 +35,19 @@ by <- list("model",
           #  c("model", "horizon"),
            c("model", "horizon", "reference_date"))
 
+by <- list(#"model",
+          #  c("model", "horizon"),
+           c("model", "horizon", "reference_date"))
+
+
 scores <- compute_scores(forecasts = forecasts,
                          target_data = target_data,
                          by = by,
                          submission_threshold = 0.75)
 
-scores[[1]]
+scores[[1]][, 1:8]
 
-scores_w_horizon <- scores[[3]]
+scores_w_horizon <- scores[[2]]
 p_by_horizon <- ggplot(data = scores_w_horizon |>
                 # dplyr::filter(model %in% models_to_keep) |>
                 dplyr::mutate(is_umass = grepl("UMass", model, fixed = TRUE))) +
@@ -58,148 +64,44 @@ ggplotly(p_by_horizon)
 
 
 
-data_for_su <- forecasts |>
-  dplyr::left_join(
-    target_data |> dplyr::select(target_end_date = date, location, observed = value),
-    by = c("location", "target_end_date")
-  ) |>
-  dplyr::rename(model=model_id, quantile_level=output_type_id, predicted=value) |>
-  dplyr::mutate(quantile = as.numeric(quantile))
-
-# data_for_su %>%
-#   dplyr::filter(model == "FluSight-ensemble") %>%
-#   dplyr::mutate(quantile = format(quantile, 3)) %>%
-#   dplyr::filter(quantile == "0.500") %>%
-#   nrow()
-
-# data_for_su %>%
-#   dplyr::filter(model == "FluSight-ensemble") %>%
-#   dplyr::mutate(quantile = format(quantile, 3)) %>%
-#   dplyr::filter(quantile == "0.500") %>%
-#   dplyr::mutate(ae = abs(prediction - true_value)) %>%
-#   dplyr::filter(!is.na(ae)) %>%
-#   dplyr::summarize(mae = mean(ae)) %>%
-#   dplyr::pull(mae)
-
-# data_for_su %>%
-#   dplyr::filter(model == "FluSight-ensemble") %>%
-#   dplyr::mutate(quantile = format(quantile, 3)) %>%
-#   dplyr::filter(quantile %in% c("0.025", "0.975")) %>%
-#   tidyr::pivot_wider(names_from = quantile, values_from = prediction) %>%
-#   dplyr::mutate(in_interval = ((true_value >= `0.025`) & (true_value <= `0.975`))) %>%
-#   dplyr::filter(!is.na(in_interval)) %>%
-#   dplyr::summarize(cov_95 = mean(in_interval)) %>%
-#   dplyr::pull(cov_95)
-
-#   dplyr::mutate(cov_95 = abs(prediction - true_value)) %>%
-#   dplyr::filter(!is.na(ae)) %>%
-#   dplyr::summarize(mae = mean(ae)) %>%
-#   dplyr::pull(mae)
-
-
-
-# temp <- data_for_su %>%
-#   dplyr::filter(model == "FluSight-ensemble", horizon >= 0, location != "US", location != "78") %>%
-#   # dplyr::pull(location) %>%
-#   # unique() %>%
-#   # length()
-#   dplyr::mutate(quantile = format(quantile, 3)) %>%
-#   dplyr::filter(quantile == "0.500") #%>%
-# #  nrow()
-
-# data_for_su %>%
-#   dplyr::filter(model == "FluSight-ensemble", horizon >= 0) %>%
-#   dplyr::distinct(location, horizon, reference_date)
-
-
-#   dplyr::mutate(ae = abs(prediction - true_value)) %>%
-#   dplyr::filter(!is.na(ae)) %>%
-#   dplyr::summarize(mae = mean(ae))
-
-
-# data_for_su |>
-#   scoringutils::check_forecasts()
-
-scores_raw <- data_for_su |>
-  scoringutils::score()
-
-# scores_raw |>
-#   add_coverage(ranges = c(50, 80, 95), by = c("model")) |>
-#   summarise_scores(by = c("model"),
-#                    relative_skill = TRUE,
-#                    baseline = "FluSight-baseline")
-
-
-# scores <- scores_raw |>
-#   add_coverage(ranges = c(50, 80, 95), by = c("model", "reference_date")) |>
-#   summarise_scores(by = c("model", "reference_date"),
-#                    relative_skill = TRUE,
-#                    baseline = "FluSight-baseline")
-
-n_locs <- dplyr::distinct(forecasts, model_id, location) |>
-  group_by(model_id) |>
-  summarize(n_locs = n())
-
-models_to_keep <- n_locs |>
-  dplyr::filter(n_locs > 50) |>
-  dplyr::pull(model_id)
-
-
-# ggplot(data = scores |>
+# p_by_horizon <- ggplot(data = scores_w_horizon |>
 #                 dplyr::filter(model %in% models_to_keep) |>
 #                 dplyr::mutate(is_umass = grepl("UMass", model))) +
-#   geom_line(mapping = aes(x = reference_date, y = interval_score, color = model, size = factor(is_umass))) +
+#   geom_line(mapping = aes(x = reference_date, y = ae_median, color = model, size = factor(is_umass))) +
+#   geom_point(mapping = aes(x = reference_date, y = ae_median, color = model, size = factor(is_umass))) +
 #   scale_size_manual(values = c(0.25, 1)) +
+#   facet_wrap(~ horizon) +
 #   theme_bw()
-
-
-
-
-
-scores_w_horizon <- scores_raw |>
-  add_coverage(ranges = c(50, 80, 95), by = c("model", "reference_date", "horizon")) |>
-  summarise_scores(by = c("model", "reference_date", "horizon"))#,
-                  #  relative_skill = TRUE,
-                  #  relative_skill_metric = "interval_score",
-                  #  baseline = "FluSight-baseline")
-
-p_by_horizon <- ggplot(data = scores_w_horizon |>
-                dplyr::filter(model %in% models_to_keep) |>
-                dplyr::mutate(is_umass = grepl("UMass", model))) +
-  geom_line(mapping = aes(x = reference_date, y = interval_score, color = model, size = factor(is_umass))) +
-  geom_point(mapping = aes(x = reference_date, y = interval_score, color = model, size = factor(is_umass))) +
-  scale_size_manual(values = c(0.25, 1)) +
-  facet_wrap(~ horizon) +
-  theme_bw()
-
-ggplotly(p_by_horizon)
-
-
-p_by_horizon <- ggplot(data = scores_w_horizon |>
-                dplyr::filter(model %in% models_to_keep) |>
-                dplyr::mutate(is_umass = grepl("UMass", model))) +
-  geom_line(mapping = aes(x = reference_date, y = ae_median, color = model, size = factor(is_umass))) +
-  geom_point(mapping = aes(x = reference_date, y = ae_median, color = model, size = factor(is_umass))) +
-  scale_size_manual(values = c(0.25, 1)) +
-  facet_wrap(~ horizon) +
-  theme_bw()
 
 ggplotly(p_by_horizon)
 
 
 
 coverage_by_horizon <- ggplot(data = scores_w_horizon |>
-                dplyr::filter(model %in% models_to_keep) |>
+                # dplyr::filter(model %in% models_to_keep) |>
                 dplyr::mutate(is_umass = grepl("UMass", model))) +
-  geom_line(mapping = aes(x = reference_date, y = coverage_80, color = model, size = factor(is_umass))) +
-  geom_point(mapping = aes(x = reference_date, y = coverage_80, color = model, size = factor(is_umass))) +
-  geom_hline(yintercept=0.8, linetype=2) +
+  geom_line(mapping = aes(x = reference_date, y = interval_coverage_50, color = model, size = factor(is_umass))) +
+  geom_point(mapping = aes(x = reference_date, y = interval_coverage_50, color = model, size = factor(is_umass))) +
+  geom_hline(yintercept=0.5, linetype=2) +
   scale_size_manual(values = c(0.25, 1)) +
   facet_wrap(~ horizon) +
   theme_bw()
 
 ggplotly(coverage_by_horizon)
 
+
+
+coverage_by_horizon <- ggplot(data = scores_w_horizon |>
+                # dplyr::filter(model %in% models_to_keep) |>
+                dplyr::mutate(is_umass = grepl("UMass", model))) +
+  geom_line(mapping = aes(x = reference_date, y = interval_coverage_95, color = model, size = factor(is_umass))) +
+  geom_point(mapping = aes(x = reference_date, y = interval_coverage_95, color = model, size = factor(is_umass))) +
+  geom_hline(yintercept=0.95, linetype=2) +
+  scale_size_manual(values = c(0.25, 1)) +
+  facet_wrap(~ horizon) +
+  theme_bw()
+
+ggplotly(coverage_by_horizon)
 
 
 coverage_by_horizon <- ggplot(data = scores_w_horizon |>

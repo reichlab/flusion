@@ -5,6 +5,7 @@ library(lubridate)
 library(readr)
 library(hubEnsembles)
 library(hubUtils)
+library(hubData)
 library(here)
 setwd(here::here())
 
