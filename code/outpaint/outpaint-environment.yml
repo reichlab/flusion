@@ -1,0 +1,16 @@
+name: outpaint
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy=1.24
+  - pandas
+  - matplotlib
+  - pip
+  - ipykernel
+  - pip:
+    - pymmwr
+    - ipywidgets
+    - diffusers
+    - transformers
+    - accelerate
