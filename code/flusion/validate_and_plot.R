@@ -1,6 +1,6 @@
 library(hubValidations)
 library(hubVis)
-library(hubUtils)
+library(hubData)
 library(lubridate)
 
 current_ref_date <- lubridate::ceiling_date(Sys.Date(), "week") - days(1)
