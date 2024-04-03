@@ -32,11 +32,6 @@ target_data <- readr::read_csv("https://raw.githubusercontent.com/cdcepi/FluSigh
 head(target_data)
 
 by <- list("model",
-          #  c("model", "horizon"),
-           c("model", "horizon", "reference_date"))
-
-by <- list(#"model",
-          #  c("model", "horizon"),
            c("model", "horizon", "reference_date"))
 
 
@@ -63,22 +58,7 @@ ggplotly(p_by_horizon)
 
 
 
-
-# p_by_horizon <- ggplot(data = scores_w_horizon |>
-#                 dplyr::filter(model %in% models_to_keep) |>
-#                 dplyr::mutate(is_umass = grepl("UMass", model))) +
-#   geom_line(mapping = aes(x = reference_date, y = ae_median, color = model, size = factor(is_umass))) +
-#   geom_point(mapping = aes(x = reference_date, y = ae_median, color = model, size = factor(is_umass))) +
-#   scale_size_manual(values = c(0.25, 1)) +
-#   facet_wrap(~ horizon) +
-#   theme_bw()
-
-ggplotly(p_by_horizon)
-
-
-
 coverage_by_horizon <- ggplot(data = scores_w_horizon |>
-                # dplyr::filter(model %in% models_to_keep) |>
                 dplyr::mutate(is_umass = grepl("UMass", model))) +
   geom_line(mapping = aes(x = reference_date, y = interval_coverage_50, color = model, size = factor(is_umass))) +
   geom_point(mapping = aes(x = reference_date, y = interval_coverage_50, color = model, size = factor(is_umass))) +
