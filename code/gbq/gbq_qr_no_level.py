@@ -1,7 +1,4 @@
-import os
 from pathlib import Path
-
-from itertools import chain, product
 
 import datetime
 import time
@@ -9,15 +6,10 @@ import time
 import math
 import numpy as np
 import pandas as pd
-from pandas.tseries.holiday import USFederalHolidayCalendar
 
 import datetime
-import pymmwr
 
 import lightgbm as lgb
-
-# https://github.com/reichlab/timeseriesutils
-from timeseriesutils import featurize
 
 from data_pipeline.loader import FluDataLoader
 from utils import create_features_and_targets
@@ -171,7 +163,7 @@ preds_df = g[['output_type_id', 'value']] \
 if not Path('../../submissions-hub/model-output/UMass-gbq_qr_no_level').exists():
     Path('../../submissions-hub/model-output/UMass-gbq_qr_no_level').mkdir(parents=True)
 
-preds_df.to_csv(f'../../submissions-hub/model-output/UMass-gbq_qr_no_level/{str(ref_date)}-UMass-gbq_qr_no_level_refactored_run2.csv', index=False)
+preds_df.to_csv(f'../../submissions-hub/model-output/UMass-gbq_qr_no_level/{str(ref_date)}-UMass-gbq_qr_no_level.csv', index=False)
 
 
 
