@@ -27,6 +27,10 @@ def make_parser():
     parser.add_argument('--short_run',
                         help='Flag to do a short run; overrides model-default num_bags to 10 and uses 3 quantile levels',
                         action='store_true')
+    parser.add_argument('--output_root',
+                        help='Path to a directory in which model outputs are saved',
+                        type=lambda s: Path(s),
+                        default=Path('../../submissions-hub/model-output'))
     
     return parser
 
@@ -60,10 +64,16 @@ def main():
         # override model-specified num_bags to a smaller value
         config.num_bags = 10
         
+        # maximum forecast horizon
+        max_horizon = 3
+        
         # quantile levels at which to generate predictions
-        q_levels = [0.25, 0.50, 0.75]
-        q_labels = ['0.25', '0.5', '0.75']
+        q_levels = [0.025, 0.50, 0.975]
+        q_labels = ['0.025', '0.5', '0.975']
     else:
+        # maximum forecast horizon
+        max_horizon = 5
+        
         # quantile levels at which to generate predictions
         q_levels = [0.01, 0.025, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35,
                     0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80,
@@ -86,7 +96,7 @@ def main():
     df, feat_names = create_features_and_targets(
         df = df,
         incl_level_feats=config.incl_level_feats,
-        max_horizon=config.max_horizon,
+        max_horizon=max_horizon,
         curr_feat_names=['inc_4rt_cs', 'season_week', 'log_pop'])
     
     # keep only rows that are in-season
@@ -181,10 +191,11 @@ def main():
         .reset_index()
     
     # save
-    if not Path(f'../../submissions-hub/model-output/UMass-{model_name}').exists():
-        Path(f'../../submissions-hub/model-output/UMass-{model_name}').mkdir(parents=True)
+    model_dir = args.output_root / f'UMass-{model_name}'
+    if not model_dir.exists():
+        model_dir.mkdir(parents=True)
     
-    preds_df.to_csv(f'../../submissions-hub/model-output/UMass-{model_name}/{str(ref_date)}-UMass-{model_name}.csv', index=False)
+    preds_df.to_csv(model_dir / f'{str(ref_date)}-UMass-{model_name}.csv', index=False)
 
 
 if __name__ == '__main__':

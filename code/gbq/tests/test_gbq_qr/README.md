@@ -1,0 +1,1 @@
+This folder contains "ground truth" data for an integration/regression test of `gbq_qr.py`, used in `tests/test_gbq_qr.py`.  The idea is that runs of `gbq_qr.py` should reproduce the file `2024-03-30-UMass-gbq_qr.py`.  The file `plot_prediction.R` can be used to verify that this file contains reasonable predictions to use as a reference.
