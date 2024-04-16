@@ -42,7 +42,7 @@ def validate_ref_date(ref_date):
     elif isinstance(ref_date, datetime.date):
         # check that it's a Saturday
         if ref_date.weekday() != 5:
-          raise ValueError('ref_date must be a Saturday')
+            raise ValueError('ref_date must be a Saturday')
         
         return ref_date
     else:
@@ -80,7 +80,7 @@ def main():
     
     # load flu data
     fdl = FluDataLoader('../../data-raw')
-    df = fdl.load_data()
+    df = fdl.load_data(hhs_kwargs={'as_of': ref_date})
     
     # augment data with features and target values
     df, feat_names = create_features_and_targets(

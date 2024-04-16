@@ -1,14 +1,11 @@
 from pathlib import Path
+import glob
 
 from itertools import product
 
-import datetime
-
 import numpy as np
 import pandas as pd
-from pandas.tseries.holiday import USFederalHolidayCalendar
 
-import datetime
 import pymmwr
 
 from . import utils
@@ -147,8 +144,6 @@ class FluDataLoader():
       engine='python')
 
     burden_estimates.columns = ['season', 'hosp_burden']
-
-    #burden_estimates['hosp_burden'] = burden_estimates['hosp_burden'].astype(int)
 
     burden_estimates['season'] = burden_estimates['season'].str[:4] + '/' + burden_estimates['season'].str[7:9]
 
@@ -303,9 +298,16 @@ class FluDataLoader():
     return dat
 
 
-  def load_hhs(self, rates=True, drop_pandemic_seasons=True):
+  def load_hhs(self, rates=True, drop_pandemic_seasons=True, as_of=None):
     if drop_pandemic_seasons:
-      file_path = 'influenza-hhs/hhs.csv'
+      if as_of is None:
+        file_path = 'influenza-hhs/hhs.csv'
+      else:
+        # find the largest stored file dated on or before the as_of date
+        as_of_file_path = f'influenza-hhs/hhs-{str(as_of)}.csv'
+        all_file_paths = sorted(glob.glob('influenza-hhs/hhs-????-??-??.csv', root_dir = self.data_raw))
+        all_file_paths = [f for f in all_file_paths if f <= as_of_file_path]
+        file_path = all_file_paths[-1]
     else:
       file_path = 'influenza-hhs/hhs_complete.csv'
     dat = pd.read_csv(self.data_raw / file_path)
