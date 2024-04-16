@@ -135,7 +135,6 @@ def main():
     # combined predictions across bags: median
     oob_pred_qs = np.nanmedian(oob_preds_by_bag, axis=1)
     test_pred_qs = np.median(test_preds_by_bag, axis=1)
-    test_pred_qs.shape
     
     # test predictions as a data frame, one column per quantile level
     test_pred_qs_df = pd.DataFrame(test_pred_qs)
