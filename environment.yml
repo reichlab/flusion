@@ -3,14 +3,15 @@ channels:
   - defaults
 dependencies:
   - python=3.11
+  - ipykernel
+  - lightgbm
+  - matplotlib
   - nomkl
   - numpy
   - pandas
-  - matplotlib
+  - pytest
   - seaborn
   - scikit-learn
-  - lightgbm
-  - ipykernel
   - pip
   - pip:
     - pymmwr
