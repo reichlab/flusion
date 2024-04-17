@@ -1,8 +1,3 @@
-import argparse
-import importlib
-from pathlib import Path
-
-import datetime
 import time
 
 import numpy as np
@@ -11,92 +6,28 @@ import pandas as pd
 import lightgbm as lgb
 
 from data_pipeline.loader import FluDataLoader
-from utils import create_features_and_targets
-
-
-def make_parser():
-    parser = argparse.ArgumentParser(description='Run gradient boosting model for flu prediction')
-    parser.add_argument('--ref_date',
-                        help='reference date for predictions in format YYYY-MM-DD; a Saturday',
-                        type=lambda s: datetime.date.fromisoformat(s),
-                        default=None)
-    parser.add_argument('--model_name',
-                        help='Model name',
-                        choices=['gbq_qr', 'gbq_qr_no_level'],
-                        default='gbq_qr')
-    parser.add_argument('--short_run',
-                        help='Flag to do a short run; overrides model-default num_bags to 10 and uses 3 quantile levels',
-                        action='store_true')
-    parser.add_argument('--output_root',
-                        help='Path to a directory in which model outputs are saved',
-                        type=lambda s: Path(s),
-                        default=Path('../../submissions-hub/model-output'))
-    
-    return parser
-
-
-def validate_ref_date(ref_date):
-    if ref_date is None:
-        today = datetime.date.today()
-        
-        # next Saturday: weekly forecasts are relative to this date
-        ref_date = today - datetime.timedelta((today.weekday() + 2) % 7 - 7)
-        
-        return ref_date
-    elif isinstance(ref_date, datetime.date):
-        # check that it's a Saturday
-        if ref_date.weekday() != 5:
-            raise ValueError('ref_date must be a Saturday')
-        
-        return ref_date
-    else:
-        raise TypeError('ref_date must be a datetime.date object')
+from utils import parse_args, create_features_and_targets
 
 
 def main():
     # parse arguments
-    parser = make_parser()
-    args = parser.parse_args()
-    ref_date = validate_ref_date(args.ref_date)
-    model_name = args.model_name
-    config = importlib.import_module(f'configs.{model_name}').config
-    if args.short_run:
-        # override model-specified num_bags to a smaller value
-        config.num_bags = 10
-        
-        # maximum forecast horizon
-        max_horizon = 3
-        
-        # quantile levels at which to generate predictions
-        q_levels = [0.025, 0.50, 0.975]
-        q_labels = ['0.025', '0.5', '0.975']
-    else:
-        # maximum forecast horizon
-        max_horizon = 5
-        
-        # quantile levels at which to generate predictions
-        q_levels = [0.01, 0.025, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35,
-                    0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80,
-                    0.85, 0.90, 0.95, 0.975, 0.99]
-        q_labels = ['0.01', '0.025', '0.05', '0.1', '0.15', '0.2', '0.25', '0.3', '0.35',
-                    '0.4', '0.45', '0.5', '0.55', '0.6', '0.65', '0.7', '0.75', '0.8',
-                    '0.85', '0.9', '0.95', '0.975', '0.99']
+    model_config, run_config = parse_args()
     
     # seed for random number generation, based on reference date
-    rng_seed = int(time.mktime(ref_date.timetuple()))
+    rng_seed = int(time.mktime(run_config.ref_date.timetuple()))
     rng = np.random.default_rng(seed=rng_seed)
     # seeds for lgb model fits, one per combination of bag and quantile level
-    lgb_seeds = rng.integers(1e8, size=(config.num_bags, len(q_levels)))
+    lgb_seeds = rng.integers(1e8, size=(model_config.num_bags, len(run_config.q_levels)))
     
     # load flu data
     fdl = FluDataLoader('../../data-raw')
-    df = fdl.load_data(hhs_kwargs={'as_of': ref_date})
+    df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date})
     
     # augment data with features and target values
     df, feat_names = create_features_and_targets(
         df = df,
-        incl_level_feats=config.incl_level_feats,
-        max_horizon=max_horizon,
+        incl_level_feats=model_config.incl_level_feats,
+        max_horizon=run_config.max_horizon,
         curr_feat_names=['inc_4rt_cs', 'season_week', 'log_pop'])
     
     # keep only rows that are in-season
@@ -114,22 +45,22 @@ def main():
     y_train = df_train['delta_target']
     
     # training loop over bags
-    oob_preds_by_bag = np.empty((x_train.shape[0], config.num_bags, len(q_levels)))
+    oob_preds_by_bag = np.empty((x_train.shape[0], model_config.num_bags, len(run_config.q_levels)))
     oob_preds_by_bag[:] = np.nan
-    test_preds_by_bag = np.empty((x_test.shape[0], config.num_bags, len(q_levels)))
+    test_preds_by_bag = np.empty((x_test.shape[0], model_config.num_bags, len(run_config.q_levels)))
     
     train_seasons = df_train['season'].unique()
     
-    for b in range(config.num_bags):
+    for b in range(model_config.num_bags):
         print(f'bag number {b+1}')
         # get indices of observations that are in bag
         bag_seasons = rng.choice(
             train_seasons,
-            size = int(len(train_seasons) * config.bag_frac_samples),
+            size = int(len(train_seasons) * model_config.bag_frac_samples),
             replace=False)
         bag_obs_inds = df_train['season'].isin(bag_seasons)
         
-        for q_ind, q_level in enumerate(q_levels):
+        for q_ind, q_level in enumerate(run_config.q_levels):
             # fit to bag
             model = lgb.LGBMRegressor(
                 verbosity=-1,
@@ -147,7 +78,7 @@ def main():
     
     # test predictions as a data frame, one column per quantile level
     test_pred_qs_df = pd.DataFrame(test_pred_qs)
-    test_pred_qs_df.columns = q_labels
+    test_pred_qs_df.columns = run_config.q_labels
     
     # add predictions to original test df
     df_test.reset_index(drop=True, inplace=True)
@@ -158,7 +89,7 @@ def main():
     cols_to_keep = ['source', 'location', 'wk_end_date', 'pop',
                     'inc_4rt_cs', 'horizon',
                     'inc_4rt_center_factor', 'inc_4rt_scale_factor']
-    preds_df = df_test_w_preds[cols_to_keep + q_labels]
+    preds_df = df_test_w_preds[cols_to_keep + run_config.q_labels]
     preds_df = preds_df.loc[(preds_df['source'] == 'hhs')]
     preds_df = pd.melt(preds_df,
                        id_vars=cols_to_keep,
@@ -176,7 +107,7 @@ def main():
         .rename(columns={'quantile': 'output_type_id'})
     
     preds_df['target_end_date'] = preds_df['wk_end_date'] + pd.to_timedelta(7*preds_df['horizon'], unit='days')
-    preds_df['reference_date'] = ref_date
+    preds_df['reference_date'] = run_config.ref_date
     preds_df['horizon'] = preds_df['horizon'] - 2
     preds_df['target'] = 'wk inc flu hosp'
     
@@ -191,11 +122,9 @@ def main():
         .reset_index()
     
     # save
-    model_dir = args.output_root / f'UMass-{model_name}'
-    if not model_dir.exists():
-        model_dir.mkdir(parents=True)
-    
-    preds_df.to_csv(model_dir / f'{str(ref_date)}-UMass-{model_name}.csv', index=False)
+    model_dir = run_config.output_root / f'UMass-{model_config.model_name}'
+    model_dir.mkdir(parents=True, exist_ok=True)
+    preds_df.to_csv(model_dir / f'{str(run_config.ref_date)}-UMass-{model_config.model_name}.csv', index=False)
 
 
 if __name__ == '__main__':
