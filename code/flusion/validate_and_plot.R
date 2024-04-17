@@ -100,9 +100,11 @@ for (timespan in c("last_season", "rolling_12wk")) {
 
     p <- plot_step_ahead_model_output(
       forecast |> dplyr::filter(model_id %in% incl_models_vec),
-      target_data |> dplyr::filter(date >= data_start),
+      target_data |>
+        dplyr::filter(date >= data_start) |>
+        dplyr::mutate(observation = value),
       x_col_name = "target_end_date",
-      x_truth_col_name = "date",
+      x_target_col_name = "date",
       intervals = 0.95,
       facet = "location_name",
       facet_scales = "free_y",
