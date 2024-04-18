@@ -5,52 +5,13 @@ from types import SimpleNamespace
 
 import datetime
 
-def make_parser():
-    parser = argparse.ArgumentParser(description='Run gradient boosting model for flu prediction')
-    parser.add_argument('--ref_date',
-                        help='reference date for predictions in format YYYY-MM-DD; a Saturday',
-                        type=lambda s: datetime.date.fromisoformat(s),
-                        default=None)
-    parser.add_argument('--model_name',
-                        help='Model name',
-                        choices=['gbq_qr', 'gbq_qr_no_level'],
-                        default='gbq_qr')
-    parser.add_argument('--short_run',
-                        help='Flag to do a short run; overrides model-default num_bags to 10 and uses 3 quantile levels',
-                        action='store_true')
-    parser.add_argument('--output_root',
-                        help='Path to a directory in which model outputs are saved',
-                        type=lambda s: Path(s),
-                        default=Path('../../submissions-hub/model-output'))
-    
-    return parser
-
-
-def validate_ref_date(ref_date):
-    if ref_date is None:
-        today = datetime.date.today()
-        
-        # next Saturday: weekly forecasts are relative to this date
-        ref_date = today - datetime.timedelta((today.weekday() + 2) % 7 - 7)
-        
-        return ref_date
-    elif isinstance(ref_date, datetime.date):
-        # check that it's a Saturday
-        if ref_date.weekday() != 5:
-            raise ValueError('ref_date must be a Saturday')
-        
-        return ref_date
-    else:
-        raise TypeError('ref_date must be a datetime.date object')
-
-
 def parse_args():
     '''
     Parse arguments to the gbq_qr.py script
     
     Returns
     -------
-    Two dictionaries collecting settings for the model and the run:
+    Two configuration objects collecting settings for the model and the run:
     - `model_config` contains settings for the model
     - `run_config` contains the following properties:
         - `ref_date`: the reference date for the forecast
@@ -61,10 +22,10 @@ def parse_args():
         - `q_levels`: list of floats with quantile levels for predictions
         - `q_labels`: list of strings with names for the quantile levels
     '''
-    parser = make_parser()
+    parser = _make_parser()
     args = parser.parse_args()
     
-    ref_date = validate_ref_date(args.ref_date)
+    ref_date = _validate_ref_date(args.ref_date)
     model_name = args.model_name
     
     model_config = importlib.import_module(f'configs.{model_name}').config
@@ -98,3 +59,42 @@ def parse_args():
                                '0.85', '0.9', '0.95', '0.975', '0.99']
     
     return model_config, run_config
+
+
+def _make_parser():
+    parser = argparse.ArgumentParser(description='Run gradient boosting model for flu prediction')
+    parser.add_argument('--ref_date',
+                        help='reference date for predictions in format YYYY-MM-DD; a Saturday',
+                        type=lambda s: datetime.date.fromisoformat(s),
+                        default=None)
+    parser.add_argument('--model_name',
+                        help='Model name',
+                        choices=['gbq_qr', 'gbq_qr_no_level'],
+                        default='gbq_qr')
+    parser.add_argument('--short_run',
+                        help='Flag to do a short run; overrides model-default num_bags to 10 and uses 3 quantile levels',
+                        action='store_true')
+    parser.add_argument('--output_root',
+                        help='Path to a directory in which model outputs are saved',
+                        type=lambda s: Path(s),
+                        default=Path('../../submissions-hub/model-output'))
+    
+    return parser
+
+
+def _validate_ref_date(ref_date):
+    if ref_date is None:
+        today = datetime.date.today()
+        
+        # next Saturday: weekly forecasts are relative to this date
+        ref_date = today - datetime.timedelta((today.weekday() + 2) % 7 - 7)
+        
+        return ref_date
+    elif isinstance(ref_date, datetime.date):
+        # check that it's a Saturday
+        if ref_date.weekday() != 5:
+            raise ValueError('ref_date must be a Saturday')
+        
+        return ref_date
+    else:
+        raise TypeError('ref_date must be a datetime.date object')
