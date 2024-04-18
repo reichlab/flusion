@@ -12,3 +12,12 @@ If you have an existing `flusion` environment that you want to update to match c
 ```
 conda env update --file environment.yml --prune
 ```
+
+## Running unit tests
+
+Unit tests for `gbq` functionality can be run as follows, working within the `code/gbq` subdirectory:
+
+```
+conda activate flusion
+pytest
+```
