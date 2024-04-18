@@ -8,37 +8,15 @@ import lightgbm as lgb
 from data_pipeline.loader import FluDataLoader
 from preprocess import create_features_and_targets
 
-def run_gbq_flu_model(model_config, run_config):
+
+def train_gbq_and_predict(model_config, run_config,
+                          df_train, x_train, y_train,
+                          df_test, x_test):
     # seed for random number generation, based on reference date
     rng_seed = int(time.mktime(run_config.ref_date.timetuple()))
     rng = np.random.default_rng(seed=rng_seed)
     # seeds for lgb model fits, one per combination of bag and quantile level
     lgb_seeds = rng.integers(1e8, size=(model_config.num_bags, len(run_config.q_levels)))
-    
-    # load flu data
-    fdl = FluDataLoader('../../data-raw')
-    df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date})
-    
-    # augment data with features and target values
-    df, feat_names = create_features_and_targets(
-        df = df,
-        incl_level_feats=model_config.incl_level_feats,
-        max_horizon=run_config.max_horizon,
-        curr_feat_names=['inc_4rt_cs', 'season_week', 'log_pop'])
-    
-    # keep only rows that are in-season
-    df = df.query("season_week >= 5 and season_week <= 45")
-    
-    # "test set" df used to generate look-ahead predictions
-    df_test = df \
-        .loc[df.wk_end_date == df.wk_end_date.max()] \
-        .copy()
-    x_test = df_test[feat_names]
-    
-    # "train set" df for model fitting; target value non-missing
-    df_train = df.loc[~df['delta_target'].isna().values]
-    x_train = df_train[feat_names]
-    y_train = df_train['delta_target']
     
     # training loop over bags
     oob_preds_by_bag = np.empty((x_train.shape[0], model_config.num_bags, len(run_config.q_levels)))
@@ -116,6 +94,39 @@ def run_gbq_flu_model(model_config, run_config):
     preds_df = g[['output_type_id', 'value']] \
         .transform(lambda x: x.sort_values()) \
         .reset_index()
+    
+    return preds_df
+
+
+def run_gbq_flu_model(model_config, run_config):
+    # load flu data
+    fdl = FluDataLoader('../../data-raw')
+    df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date})
+    
+    # augment data with features and target values
+    df, feat_names = create_features_and_targets(
+        df = df,
+        incl_level_feats=model_config.incl_level_feats,
+        max_horizon=run_config.max_horizon,
+        curr_feat_names=['inc_4rt_cs', 'season_week', 'log_pop'])
+    
+    # keep only rows that are in-season
+    df = df.query("season_week >= 5 and season_week <= 45")
+    
+    # "test set" df used to generate look-ahead predictions
+    df_test = df.loc[df.wk_end_date == df.wk_end_date.max()] \
+        .copy()
+    x_test = df_test[feat_names]
+    
+    # "train set" df for model fitting; target value non-missing
+    df_train = df.loc[~df['delta_target'].isna().values]
+    x_train = df_train[feat_names]
+    y_train = df_train['delta_target']
+
+    # train model and obtain test set predictions
+    preds_df = train_gbq_and_predict(model_config, run_config,
+                                     df_train, x_train, y_train,
+                                     df_test, x_test)
     
     # save
     model_dir = run_config.output_root / f'UMass-{model_config.model_name}'
