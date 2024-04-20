@@ -4,7 +4,7 @@
 # model fits are generated using the data that would have been available in
 # real time.
 #
-# To main transparency about which model outputs were and were not generated in
+# To maintain transparency about which model outputs were and were not generated in
 # real time, these model outputs are stored in flusion/retrospective-hub.
 
 # This script should be run with code/gbq as the working directory:
