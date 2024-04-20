@@ -1,5 +1,15 @@
 # flusion
+
 Influenza forecasting using data fusion
+
+## Repository organization
+
+This repository has the following directories:
+
+- `code/`: all code for flusion and its component models, exploratory data analyses, and so on. See the readme in that folder for further information.
+- `data-raw/`: raw data measuring influenza activity, pulled from various sources. See the readme in that folder for further information.
+- `retrospective-hub/`: a folder with the same structure as the FluSight forecast hub, used for storing model outputs generated in retrospective analyses.
+- `submissions-hub/`: a folder with the same structure as the FluSight forecast hub, used for storing model outputs geneated in real time for purposes of weekly model submissions. This includes model outputs from flusion as well as its component models.
 
 ## Environment setup
 
