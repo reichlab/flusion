@@ -1,3 +1,5 @@
+import fnmatch
+
 import pandas as pd
 
 from timeseriesutils import featurize
@@ -116,9 +118,15 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
     
     # if requested, drop features that involve absolute level
     if not incl_level_feats:
-        level_feats = ['inc_4rt_cs', 'inc_4rt_cs_lag1', 'inc_4rt_cs_lag2'] + \
-                      [f for f in feat_names if f.find('taylor_d0') > -1] + \
-                      [f for f in feat_names if f.find('inc_4rt_cs_rollmean') > -1]
-        feat_names = [f for f in feat_names if f not in level_feats]
+        feat_names = _drop_level_feats(feat_names)
     
     return df, feat_names
+
+
+def _drop_level_feats(feat_names):
+    level_feats = ['inc_4rt_cs', 'inc_4rt_cs_lag1', 'inc_4rt_cs_lag2'] + \
+                  fnmatch.filter(feat_names, '*taylor_d?_c0*') + \
+                  fnmatch.filter(feat_names, '*inc_4rt_cs_rollmean*')
+    feat_names = [f for f in feat_names if f not in level_feats]
+    return feat_names
+
