@@ -13,6 +13,8 @@ This repository has the following directories:
 
 ## Environment setup
 
+### Docker-free
+
 ```
 conda env create -f environment.yml
 ```
@@ -21,6 +23,29 @@ If you have an existing `flusion` environment that you want to update to match c
 
 ```
 conda env update --file environment.yml --prune
+```
+
+### Using Docker
+
+Build the flusion image with the following command:
+
+```
+docker build -t flusion .
+```
+
+Now, you can run commands such as the following. Note that these commands mount the `retrospective-hub` and `submissions-hub` directories as volumes in the container, and when commands run within the container, the `flusion` conda environment is activated by default.
+```
+docker run -dit \
+    -w /flusion/code/gbq \
+    -v ./retrospective-hub:/flusion/retrospective-hub \
+    -v ./submissions-hub:/flusion/submissions-hub \
+    flusion python /flusion/code/gbq/gbq.py --short_run --output_root ../../retrospective-hub/model-output
+
+docker run -dit \
+    -w /flusion/code/gbq \
+    -v ./retrospective-hub:/flusion/retrospective-hub \
+    -v ./submissions-hub:/flusion/submissions-hub \
+    flusion pytest
 ```
 
 ## Running unit tests
