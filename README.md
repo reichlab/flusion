@@ -1,6 +1,6 @@
 # flusion
 
-Influenza forecasting using data fusion
+Influenza forecasting using data fusion.
 
 ## Repository organization
 
@@ -13,7 +13,7 @@ This repository has the following directories:
 
 ## Environment setup
 
-### Docker-free
+### Without Docker
 
 ```
 conda env create -f environment.yml
@@ -33,26 +33,51 @@ Build the flusion image with the following command:
 docker build -t flusion .
 ```
 
-Now, you can run commands such as the following. Note that these commands mount the `retrospective-hub` and `submissions-hub` directories as volumes in the container, and when commands run within the container, the `flusion` conda environment is activated by default.
+Now you can run commands such as the following:
 ```
-docker run -dit \
+docker run -it \
     -w /flusion/code/gbq \
     -v ./retrospective-hub:/flusion/retrospective-hub \
     -v ./submissions-hub:/flusion/submissions-hub \
     flusion python /flusion/code/gbq/gbq.py --short_run --output_root ../../retrospective-hub/model-output
+```
 
-docker run -dit \
+Here are a few notes about this:
+
+- Here, we set the working directory to be `/flusion/code/gbq`, which is suitable for running variations on the GBQ model.
+- We mount the `retrospective-hub` and `submissions-hub` directories as volumes in the container; any outputs saved to those locations will be persisted outside of the container.
+- The Dockerfile is set up so that when commands run within the container, the `flusion` conda environment is activated by default.
+
+As another example, the following command will put you into a `bash` shell running in the container:
+```
+docker run -it \
     -w /flusion/code/gbq \
     -v ./retrospective-hub:/flusion/retrospective-hub \
     -v ./submissions-hub:/flusion/submissions-hub \
-    flusion pytest
+    flusion bash
 ```
 
 ## Running unit tests
+
+**Note:** Lightgbm model runs don't consistently yield the same results on different machines, so you should expect one failure for an integration test that compares model predictions to stored results for a small model run (unless you get lucky). This is true regardless of whether or not you're using Docker.
+
+### Without Docker
 
 Unit tests for `gbq` functionality can be run as follows, working within the `code/gbq` subdirectory:
 
 ```
 conda activate flusion
 pytest
+```
+
+#### Using Docker
+
+Unit tests for `gbq` functionality can be run as follows, working within the root of this repository:
+
+```
+docker run -it \
+    -w /flusion/code/gbq \
+    -v ./retrospective-hub:/flusion/retrospective-hub \
+    -v ./submissions-hub:/flusion/submissions-hub \
+    flusion pytest
 ```
