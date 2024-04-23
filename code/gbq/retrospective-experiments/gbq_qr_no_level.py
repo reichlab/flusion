@@ -1,8 +1,11 @@
 # Predictions for the gbq_qr_no_level model were not generated in real time
-# until the reference date 2023-12-02.  This script fills in the missing dates
-# to enable a complete evaluation of component model importance.  Retrospective
-# model fits are generated using the data that would have been available in
-# real time.
+# until the reference date 2023-12-02, and real time predictions from 2024-02-07
+# through 2024-04-20 were impacted by a bug that allowed the model to see some
+# "local level features" based on Taylor approximations.
+#
+# This script fills in predictions for these dates to enable a complete
+# evaluation of component model importance.  Retrospective model fits are
+# generated using the data that would have been available in real time.
 #
 # To maintain transparency about which model outputs were and were not generated in
 # real time, these model outputs are stored in flusion/retrospective-hub.
