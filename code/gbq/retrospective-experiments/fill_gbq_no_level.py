@@ -20,9 +20,14 @@ def run_command(command):
     os.system(command)
 
 
-missing_ref_dates = [
+missing_ref_dates_group1 = [
     (datetime.date(2023, 10, 14) + datetime.timedelta(i * 7)).isoformat() \
         for i in range(8)]
+missing_ref_dates_group2 = [
+    (datetime.date(2024, 2, 17) + datetime.timedelta(i * 7)).isoformat() \
+        for i in range(10)]
+missing_ref_dates = missing_ref_dates_group1 + missing_ref_dates_group2
+
 output_root = '../../retrospective-hub/model-output'
 
 commands = [f'python gbq.py --ref_date {ref_date} --output_root {output_root} --model_name gbq_qr_no_level' \
