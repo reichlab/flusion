@@ -20,7 +20,7 @@ def run_gbq_flu_model(model_config, run_config):
     '''
     # load flu data
     fdl = FluDataLoader('../../data-raw')
-    df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date})
+    df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date}, sources=model_config.sources)
     
     # augment data with features and target values
     df, feat_names = create_features_and_targets(
@@ -145,8 +145,6 @@ def _get_test_quantile_predictions(model_config, run_config,
     lgb_seeds = rng.integers(1e8, size=(model_config.num_bags, len(run_config.q_levels)))
     
     # training loop over bags
-    oob_preds_by_bag = np.empty((x_train.shape[0], model_config.num_bags, len(run_config.q_levels)))
-    oob_preds_by_bag[:] = np.nan
     test_preds_by_bag = np.empty((x_test.shape[0], model_config.num_bags, len(run_config.q_levels)))
     
     train_seasons = df_train['season'].unique()
@@ -169,8 +167,7 @@ def _get_test_quantile_predictions(model_config, run_config,
                 random_state=lgb_seeds[b, q_ind])
             model.fit(X=x_train.loc[bag_obs_inds, :], y=y_train.loc[bag_obs_inds])
             
-            # oob predictions and test set predictions
-            oob_preds_by_bag[~bag_obs_inds, b, q_ind] = model.predict(X=x_train.loc[~bag_obs_inds, :])
+            # test set predictions
             test_preds_by_bag[:, b, q_ind] = model.predict(X=x_test)
     
     # combined predictions across bags: median

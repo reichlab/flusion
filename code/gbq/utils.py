@@ -69,7 +69,7 @@ def _make_parser():
                         default=None)
     parser.add_argument('--model_name',
                         help='Model name',
-                        choices=['gbq_qr', 'gbq_qr_no_level'],
+                        choices=['gbq_qr', 'gbq_qr_no_level', 'gbq_qr_hhs_only'],
                         default='gbq_qr')
     parser.add_argument('--short_run',
                         help='Flag to do a short run; overrides model-default num_bags to 10 and uses 3 quantile levels',
