@@ -331,14 +331,7 @@ class FluDataLoader():
     return dat
 
 
-  def load_data(self, hhs_kwargs={}):
-    us_census = self.load_us_census()
-    fips_mappings = pd.read_csv(self.data_raw / 'fips-mappings/fips_mappings.csv')
-    
-    df_hhs = self.load_hhs(**hhs_kwargs)
-    df_hhs['inc'] = df_hhs['inc'] + 0.75**4
-    # df_hhs.loc[df_hhs['inc'] < 0.75**4, 'inc'] = 0.75**4
-    
+  def load_agg_transform_ilinet(self, fips_mappings):
     df_ilinet_full = self.load_ilinet()
     # df_ilinet_full.loc[df_ilinet_full['inc'] < np.exp(-7), 'inc'] = np.exp(-7)
     df_ilinet_full['inc'] = (df_ilinet_full['inc'] + np.exp(-7)) * 4
@@ -376,6 +369,10 @@ class FluDataLoader():
       [df_ilinet_nonstates, df_ilinet_by_state],
       axis = 0)
     
+    return df_ilinet
+
+
+  def load_agg_transform_flusurv(self, fips_mappings):
     df_flusurv_by_site = self.load_flusurv_rates()
     # df_flusurv_by_site.loc[df_flusurv_by_site['inc'] < np.exp(-3), 'inc'] = np.exp(-3)
     df_flusurv_by_site['inc'] = (df_flusurv_by_site['inc'] + np.exp(-3)) / 2.5
@@ -403,6 +400,46 @@ class FluDataLoader():
     df_flusurv = pd.concat(
       [df_flusurv_us, df_flusurv_by_state],
       axis = 0)
+    
+    return df_flusurv
+
+
+  def load_data(self, sources=None, hhs_kwargs={}):
+    '''
+    Load influenza data and transform to a scale suitable for input to models.
+
+    Parameters
+    ----------
+    sources: None or list of sources
+        data sources to collect. Defaults to ['flusurvnet', 'hhs', 'ilinet'].
+        If provided as a list, must be a subset of the defaults.
+    hhs_kwargs: keyword arguments to pass on to `load_hhs`
+
+    Returns
+    -------
+    Pandas DataFrame
+    '''
+    if sources is None:
+      sources = ['flusurvnet', 'hhs', 'ilinet']
+    
+    us_census = self.load_us_census()
+    fips_mappings = pd.read_csv(self.data_raw / 'fips-mappings/fips_mappings.csv')
+    
+    if 'hhs' in sources:
+      df_hhs = self.load_hhs(**hhs_kwargs)
+      df_hhs['inc'] = df_hhs['inc'] + 0.75**4
+    else:
+      df_hhs = None
+    
+    if 'ilinet' in sources:
+      df_ilinet = self.load_agg_transform_ilinet(fips_mappings=fips_mappings)
+    else:
+      df_ilinet = None
+    
+    if 'flusurvnet' in sources:
+      df_flusurv = self.load_agg_transform_flusurv(fips_mappings=fips_mappings)
+    else:
+      df_flusurv = None
     
     df = pd.concat(
       [df_hhs, df_ilinet, df_flusurv],
