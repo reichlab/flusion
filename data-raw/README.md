@@ -1,0 +1,1 @@
+This directory contains "raw" and lightly-processed data from various sources, each in its own subdirectory. See the readme files in those subdirectories for more information.

@@ -2,22 +2,22 @@ name: flusion
 channels:
   - defaults
 dependencies:
-  - python=3.11
-  - ipykernel
-  - lightgbm
-  - matplotlib
-  - nomkl
-  - numpy
-  - pandas
-  - pytest
-  - seaborn
-  - scikit-learn
+  - python==3.11
+  - ipykernel==6.28.0
+  - lightgbm==4.1.0
+  - matplotlib==3.8.4
+  - nomkl==3.0
+  - numpy==1.26.4
+  - pandas==1.5.3
+  - pytest==7.4.0
+  - seaborn==0.12.2
+  - scikit-learn==1.2.2
   - pip
   - pip:
-    - pymmwr
-    - jax
-    - jaxlib
-    - numpyro
-    - "--editable=git+https://github.com/elray1/sarix.git#egg=sarix"
-    - "--editable=git+https://github.com/reichlab/timeseriesutils.git#egg=timeseriesutils"
+    - pymmwr==0.2.2
+    - jax==0.4.26
+    - jaxlib==0.4.26
+    - numpyro==0.14.0
+    - "--editable=git+https://github.com/elray1/sarix.git@61a651c8ab5f09b0509a1cecbda4e7cefb42e8cc#egg=sarix"
+    - "--editable=git+https://github.com/reichlab/timeseriesutils.git@4019ee40270d28788165fa36d61bbe5b78bb5ef4#egg=timeseriesutils"
     - "--editable=code/data-pipeline"

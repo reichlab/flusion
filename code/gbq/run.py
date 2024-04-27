@@ -1,3 +1,4 @@
+from tqdm.autonotebook import tqdm
 import time
 
 import numpy as np
@@ -151,8 +152,7 @@ def _get_test_quantile_predictions(model_config, run_config,
     
     train_seasons = df_train['season'].unique()
     
-    for b in range(model_config.num_bags):
-        print(f'bag number {b+1}')
+    for b in tqdm(range(model_config.num_bags), 'Bag number'):
         # get indices of observations that are in bag
         bag_seasons = rng.choice(
             train_seasons,
