@@ -20,7 +20,7 @@ def run_command(command):
 
 missing_ref_dates = [
     (datetime.date(2023, 10, 14) + datetime.timedelta(i * 7)).isoformat() \
-        for i in range(28)]
+        for i in range(29)]
 
 output_root = '../../retrospective-hub/model-output'
 
