@@ -67,20 +67,23 @@ class FluDataLoader():
     dat['inc'] = dat.weeklyrate
     dat['location'] = dat['region']
     dat['agg_level'] = np.where(dat['location'] == 'Entire Network', 'national', 'site')
-    dat = dat[(dat.age_label.isin(age_labels)) & (dat.location.isin(locations))]
-    if seasons is not None:
-      dat = dat[dat.season.isin(seasons)]
+    dat = dat[dat.age_label.isin(age_labels)]
     
     dat = dat.sort_values(by=['wk_end'])
     
     dat['wk_end_date'] = pd.to_datetime(dat['wk_end'])
     dat = dat[['agg_level', 'location', 'season', 'season_week', 'wk_end_date', 'inc']]
     
+    # add in data from 2022/23 season
     dat = pd.concat(
       [dat, self.load_flusurv_rates_2022_23()],
       axis = 0
     )
-
+    
+    dat = dat[dat.location.isin(locations)]
+    if seasons is not None:
+      dat = dat[dat.season.isin(seasons)]
+    
     dat['source'] = 'flusurvnet'
     
     return dat
