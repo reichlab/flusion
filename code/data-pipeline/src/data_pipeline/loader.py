@@ -309,7 +309,10 @@ class FluDataLoader():
         all_file_paths = [f for f in all_file_paths if f <= as_of_file_path]
         file_path = all_file_paths[-1]
     else:
+      if as_of is not None:
+        raise NotImplementedError('Functionality for loading all seasons of HHS data with specified as_of date is not implemented.')
       file_path = 'influenza-hhs/hhs_complete.csv'
+    
     dat = pd.read_csv(self.data_raw / file_path)
     dat.rename(columns={'date': 'wk_end_date'}, inplace=True)
 
@@ -331,8 +334,8 @@ class FluDataLoader():
     return dat
 
 
-  def load_agg_transform_ilinet(self, fips_mappings):
-    df_ilinet_full = self.load_ilinet()
+  def load_agg_transform_ilinet(self, fips_mappings, **ilinet_kwargs):
+    df_ilinet_full = self.load_ilinet(**ilinet_kwargs)
     # df_ilinet_full.loc[df_ilinet_full['inc'] < np.exp(-7), 'inc'] = np.exp(-7)
     df_ilinet_full['inc'] = (df_ilinet_full['inc'] + np.exp(-7)) * 4
     
@@ -372,8 +375,8 @@ class FluDataLoader():
     return df_ilinet
 
 
-  def load_agg_transform_flusurv(self, fips_mappings):
-    df_flusurv_by_site = self.load_flusurv_rates()
+  def load_agg_transform_flusurv(self, fips_mappings, **flusurvnet_kwargs):
+    df_flusurv_by_site = self.load_flusurv_rates(**flusurvnet_kwargs)
     # df_flusurv_by_site.loc[df_flusurv_by_site['inc'] < np.exp(-3), 'inc'] = np.exp(-3)
     df_flusurv_by_site['inc'] = (df_flusurv_by_site['inc'] + np.exp(-3)) / 2.5
     
@@ -404,7 +407,7 @@ class FluDataLoader():
     return df_flusurv
 
 
-  def load_data(self, sources=None, hhs_kwargs={}):
+  def load_data(self, sources=None, flusurvnet_kwargs=None, hhs_kwargs=None, ilinet_kwargs=None):
     '''
     Load influenza data and transform to a scale suitable for input to models.
 
@@ -413,37 +416,48 @@ class FluDataLoader():
     sources: None or list of sources
         data sources to collect. Defaults to ['flusurvnet', 'hhs', 'ilinet'].
         If provided as a list, must be a subset of the defaults.
-    hhs_kwargs: keyword arguments to pass on to `load_hhs`
+    flusurvnet_kwargs: dictionary of keyword arguments to pass on to `load_flusurv_rates`
+    hhs_kwargs: dictionary of keyword arguments to pass on to `load_hhs`
+    ilinet_kwargs: dictionary of keyword arguments to pass on to `load_ilinet`
 
     Returns
     -------
     Pandas DataFrame
     '''
     if sources is None:
-      sources = ['flusurvnet', 'hhs', 'ilinet']
+        sources = ['flusurvnet', 'hhs', 'ilinet']
+    
+    if flusurvnet_kwargs is None:
+        flusurvnet_kwargs = {}
+    
+    if hhs_kwargs is None:
+        hhs_kwargs = {}
+    
+    if ilinet_kwargs is None:
+        ilinet_kwargs = {}
     
     us_census = self.load_us_census()
     fips_mappings = pd.read_csv(self.data_raw / 'fips-mappings/fips_mappings.csv')
     
     if 'hhs' in sources:
-      df_hhs = self.load_hhs(**hhs_kwargs)
-      df_hhs['inc'] = df_hhs['inc'] + 0.75**4
+        df_hhs = self.load_hhs(**hhs_kwargs)
+        df_hhs['inc'] = df_hhs['inc'] + 0.75**4
     else:
-      df_hhs = None
+        df_hhs = None
     
     if 'ilinet' in sources:
-      df_ilinet = self.load_agg_transform_ilinet(fips_mappings=fips_mappings)
+        df_ilinet = self.load_agg_transform_ilinet(fips_mappings=fips_mappings, **ilinet_kwargs)
     else:
-      df_ilinet = None
+        df_ilinet = None
     
     if 'flusurvnet' in sources:
-      df_flusurv = self.load_agg_transform_flusurv(fips_mappings=fips_mappings)
+        df_flusurv = self.load_agg_transform_flusurv(fips_mappings=fips_mappings, **flusurvnet_kwargs)
     else:
-      df_flusurv = None
+        df_flusurv = None
     
     df = pd.concat(
-      [df_hhs, df_ilinet, df_flusurv],
-      axis=0).sort_values(['source', 'location', 'wk_end_date'])
+        [df_hhs, df_ilinet, df_flusurv],
+        axis=0).sort_values(['source', 'location', 'wk_end_date'])
     
     # log population
     df = df.merge(us_census, how='left', on=['location', 'season'])
@@ -456,19 +470,21 @@ class FluDataLoader():
     #   (note non-standard order of center/scale)
     df['inc_4rt'] = (df['inc'] + 0.01)**0.25
     df['inc_4rt_scale_factor'] = df \
-      .assign(inc_4rt_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
-                                                    np.nan,
-                                                    x['inc_4rt'])) \
-      .groupby(['source', 'location'])['inc_4rt_in_season'] \
-      .transform(lambda x: x.quantile(0.95))
+        .assign(
+            inc_4rt_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
+                                                   np.nan,
+                                                   x['inc_4rt'])) \
+        .groupby(['source', 'location'])['inc_4rt_in_season'] \
+        .transform(lambda x: x.quantile(0.95))
     
     df['inc_4rt_cs'] = df['inc_4rt'] / (df['inc_4rt_scale_factor'] + 0.01)
     df['inc_4rt_center_factor'] = df \
-      .assign(inc_4rt_cs_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
-                                                    np.nan,
-                                                    x['inc_4rt_cs'])) \
-      .groupby(['source', 'location'])['inc_4rt_cs_in_season'] \
-      .transform(lambda x: x.mean())
+        .assign(
+            inc_4rt_cs_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
+                                                      np.nan,
+                                                      x['inc_4rt_cs'])) \
+        .groupby(['source', 'location'])['inc_4rt_cs_in_season'] \
+        .transform(lambda x: x.mean())
     df['inc_4rt_cs'] = df['inc_4rt_cs'] - df['inc_4rt_center_factor']
     
     return(df)
