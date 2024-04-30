@@ -20,8 +20,17 @@ def run_gbq_flu_model(model_config, run_config):
     run_config: configuration object with settings for the run
     '''
     # load flu data
+    if model_config.reporting_adj:
+        ilinet_kwargs = None
+        flusurvnet_kwargs = None
+    else:
+        ilinet_kwargs = {'scale_to_positive': False}
+        flusurvnet_kwargs = {'burden_adj': False}
+    
     fdl = FluDataLoader('../../data-raw')
-    df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date})
+    df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date},
+                       ilinet_kwargs=ilinet_kwargs,
+                       flusurvnet_kwargs=flusurvnet_kwargs)
     
     # augment data with features and target values
     df, feat_names = create_features_and_targets(

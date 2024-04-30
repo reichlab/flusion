@@ -5,5 +5,8 @@ base_config = SimpleNamespace(
 
   # bagging setup
   num_bags = 100,
-  bag_frac_samples = 0.7
+  bag_frac_samples = 0.7,
+
+  # adjustments to reporting
+  reporting_adj = True
 )
