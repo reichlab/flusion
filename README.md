@@ -33,6 +33,12 @@ Build the flusion image with the following command:
 docker build -t flusion .
 ```
 
+On a Mac with an M-series processor, you may need to use the following command to build the image:
+
+```
+docker build --platform linux/amd64 -t flusion .
+```
+
 Now you can run commands such as the following:
 ```
 docker run -it \
