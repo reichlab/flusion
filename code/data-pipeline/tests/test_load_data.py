@@ -1,3 +1,4 @@
+import pytest
 from data_pipeline.loader import FluDataLoader
 import numpy as np
 import datetime
@@ -19,50 +20,53 @@ def test_load_data_sources():
     assert set(df['source'].unique()) == {'flusurvnet', 'hhs', 'ilinet'}
 
 
-def test_load_data_kwargs():
+@pytest.mark.parametrize("test_kwargs, season_expected, wk_end_date_expected", [
+    (None, '2022/23', '2023-12-23'),
+    ({'drop_pandemic_seasons': False}, '2019/20', '2023-12-23'),
+    ({'drop_pandemic_seasons': True, 'as_of': datetime.date.fromisoformat('2023-12-30')},
+        '2022/23', '2023-12-23')
+])
+def test_load_data_hhs_kwargs(test_kwargs, season_expected, wk_end_date_expected):
     fdl = FluDataLoader('../../data-raw')
     
-    # hhs_kwargs
-    df_hhs1 = fdl.load_data(sources=['hhs'])
-    df_hhs2 = fdl.load_data(
-        sources=['hhs'],
-        hhs_kwargs={
-            'drop_pandemic_seasons': False
-        })
-    df_hhs3 = fdl.load_data(
-        sources=['hhs'],
-        hhs_kwargs={
-            'drop_pandemic_seasons': True,
-            'as_of': datetime.date.fromisoformat('2023-12-30')
-        })
+    df = fdl.load_data(sources=['hhs'], hhs_kwargs=test_kwargs)
+    
+    assert df['season'].min() == season_expected
+    wk_end_date_actual = str(df['wk_end_date'].max())[:10]
+    if test_kwargs is not None and 'as_of' in test_kwargs:
+        assert wk_end_date_actual == wk_end_date_expected
+    else:
+        assert wk_end_date_actual > wk_end_date_expected
 
-    assert df_hhs1['season'].min() == '2022/23'
-    assert df_hhs2['season'].min() == '2019/20'
-    assert df_hhs3['season'].min() == '2022/23'
-    assert str(df_hhs1['wk_end_date'].max())[:10] > '2023-12-23'
-    assert str(df_hhs2['wk_end_date'].max())[:10] > '2023-12-23'
-    assert str(df_hhs3['wk_end_date'].max())[:10] == '2023-12-23'
+
+@pytest.mark.parametrize("test_kwargs, expect_all_na", [
+    (None, True),
+    ({'drop_pandemic_seasons': False}, False),
+    ({'drop_pandemic_seasons': True}, True)
+])
+def test_load_data_ilinet_kwargs(test_kwargs, expect_all_na):
+    fdl = FluDataLoader('../../data-raw')
     
-    # ilinet_kwargs
-    df_ilinet1 = fdl.load_data(sources=['ilinet'])
-    df_ilinet2 = fdl.load_data(
-        sources=['ilinet'],
-        ilinet_kwargs={'drop_pandemic_seasons': True})
-    df_ilinet3 = fdl.load_data(
-        sources=['ilinet'],
-        ilinet_kwargs={'drop_pandemic_seasons': False})
+    df = fdl.load_data(sources=['ilinet'], ilinet_kwargs=test_kwargs)
     
-    # in first two results, pandemic season incidence set to NA
-    assert np.all(df_ilinet1.loc[df_ilinet1['season'].isin(['2008/09', '2009/10', '2020/21', '2021/22']), 'inc'].isna())
-    assert np.all(df_ilinet2.loc[df_ilinet2['season'].isin(['2008/09', '2009/10', '2020/21', '2021/22']), 'inc'].isna())
-    # in third result, some non-NA values in pandemic seasons
-    assert np.any(~df_ilinet3.loc[df_ilinet1['season'].isin(['2008/09', '2009/10', '2020/21', '2021/22']), 'inc'].isna())
+    if expect_all_na:
+        assert np.all(df.loc[df['season'].isin(['2008/09', '2009/10', '2020/21', '2021/22']), 'inc'].isna())
+    else:
+        # expect some non-NA values in pandemic seasons
+        assert np.any(~df.loc[df['season'].isin(['2008/09', '2009/10', '2020/21', '2021/22']), 'inc'].isna())
+
+
+@pytest.mark.parametrize("test_kwargs", [
+    (None),
+    ({'locations': ['California', 'Colorado', 'Connecticut']})
+])
+def test_load_data_flusurvnet_kwargs(test_kwargs):
+    fdl = FluDataLoader('../../data-raw')
     
     #flusurv_kwargs
-    df_flusurv1 = fdl.load_data(sources=['flusurvnet'])
-    df_flusurv2 = fdl.load_data(
-        sources=['flusurvnet'],
-        flusurvnet_kwargs={'locations': ['California', 'Colorado', 'Connecticut']})
+    df = fdl.load_data(sources=['flusurvnet'], flusurvnet_kwargs=test_kwargs)
     
-    assert len(df_flusurv1['location'].unique()) > 3
-    assert len(df_flusurv2['location'].unique()) == 3
+    if test_kwargs is None:
+        assert len(df['location'].unique()) > 3
+    else:
+        assert len(df['location'].unique()) == len(test_kwargs['locations'])
