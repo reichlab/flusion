@@ -7,6 +7,9 @@ base_config = SimpleNamespace(
   num_bags = 100,
   bag_frac_samples = 0.7,
 
+  # adjustments to reporting
+  reporting_adj = True,
+  
   # data sources and adjustments for reporting issues
   sources = ['flusurvnet', 'hhs', 'ilinet']
 )
