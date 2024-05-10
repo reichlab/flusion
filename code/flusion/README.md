@@ -1,6 +1,6 @@
 # flusion
 
-Scripts in this folder were used to create flusion ensembles in real time in the 2023/34 season, while scripts in the `retrospective-experiments` subfolder contain script for creating retrospective ensemble predictions to support manuscript writing. All of these scripts take as input component model submission files located in the `submissions-hub` and `retrospective-hub` folders in the root of the `flusion` repository.
+Scripts in this folder were used to create flusion ensembles in real time in the 2023/34 season, while scripts in the `retrospective-experiments` subfolder create retrospective ensemble predictions to support manuscript writing. All of these scripts take as input component model submission files located in the `submissions-hub` and `retrospective-hub` folders in the root of the `flusion` repository.
 
 These scripts are as follows:
 
