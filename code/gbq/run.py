@@ -46,17 +46,22 @@ def run_gbq_flu_model(model_config, run_config):
     # "test set" df used to generate look-ahead predictions
     df_test = df.loc[df.wk_end_date == df.wk_end_date.max()] \
         .copy()
-    x_test = df_test[feat_names]
     
     # "train set" df for model fitting; target value non-missing
     df_train = df.loc[~df['delta_target'].isna().values]
-    x_train = df_train[feat_names]
-    y_train = df_train['delta_target']
-
-    # train model and obtain test set predictions
-    preds_df = _train_gbq_and_predict(model_config, run_config,
-                                      df_train, x_train, y_train,
-                                      df_test, x_test)
+    
+    # train model and obtain test set predictinos
+    if model_config.fit_locations_separately:
+        locations = df_test['location'].unique()
+        preds_df = [
+            _train_gbq_and_predict(model_config, run_config,
+                                   df_train, df_test, feat_names, location) \
+            for location in locations
+        ]
+        preds_df = pd.concat(preds_df, axis=0)
+    else:
+        preds_df = _train_gbq_and_predict(model_config, run_config,
+                                          df_train, df_test, feat_names)
     
     # save
     model_dir = run_config.output_root / f'UMass-{model_config.model_name}'
@@ -65,8 +70,7 @@ def run_gbq_flu_model(model_config, run_config):
 
 
 def _train_gbq_and_predict(model_config, run_config,
-                           df_train, x_train, y_train,
-                           df_test, x_test):
+                           df_train, df_test, feat_names, location = None):
     '''
     Train gbq model and get predictions on the original target scale,
     formatted in the FluSight hub format.
@@ -76,15 +80,24 @@ def _train_gbq_and_predict(model_config, run_config,
     model_config: configuration object with settings for the model
     run_config: configuration object with settings for the run
     df_train: data frame with training data
-    x_train: data frame with training instances in rows, features in columns
-    y_train: series with target values
     df_test: data frame with test data
-    x_test: data frame with test instances in rows, features in columns
+    feat_names: list of names of columns with features
+    location: optional string of location to fit to. Default, None, fits to all locations
     
     Returns
     -------
     Pandas data frame with test set predictions in FluSight hub format
     '''
+    # filter to location if necessary
+    if location is not None:
+        df_test = df_test.query(f'location == "{location}"')
+        df_train = df_train.query(f'location == "{location}"')
+    
+    # get x and y
+    x_test = df_test[feat_names]
+    x_train = df_train[feat_names]
+    y_train = df_train['delta_target']
+    
     # test set predictions:
     # same number of rows as df_test, one column per quantile level
     test_pred_qs_df = _get_test_quantile_predictions(
