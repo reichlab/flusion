@@ -31,14 +31,15 @@ def run_gbq_flu_model(model_config, run_config):
     df = fdl.load_data(hhs_kwargs={'as_of': run_config.ref_date},
                        ilinet_kwargs=ilinet_kwargs,
                        flusurvnet_kwargs=flusurvnet_kwargs,
-                       sources=model_config.sources)
+                       sources=model_config.sources,
+                       power_transform=model_config.power_transform)
     
     # augment data with features and target values
     df, feat_names = create_features_and_targets(
         df = df,
         incl_level_feats=model_config.incl_level_feats,
         max_horizon=run_config.max_horizon,
-        curr_feat_names=['inc_4rt_cs', 'season_week', 'log_pop'])
+        curr_feat_names=['inc_trans_cs', 'season_week', 'log_pop'])
     
     # keep only rows that are in-season
     df = df.query("season_week >= 5 and season_week <= 45")
@@ -112,8 +113,8 @@ def _train_gbq_and_predict(model_config, run_config,
     # melt to get columns into rows, keeping only the things we need to invert data
     # transforms later on
     cols_to_keep = ['source', 'location', 'wk_end_date', 'pop',
-                    'inc_4rt_cs', 'horizon',
-                    'inc_4rt_center_factor', 'inc_4rt_scale_factor']
+                    'inc_trans_cs', 'horizon',
+                    'inc_trans_center_factor', 'inc_trans_scale_factor']
     preds_df = df_test_w_preds[cols_to_keep + run_config.q_labels]
     preds_df = preds_df.loc[(preds_df['source'] == 'hhs')]
     preds_df = pd.melt(preds_df,
@@ -122,9 +123,16 @@ def _train_gbq_and_predict(model_config, run_config,
                        value_name = 'delta_hat')
     
     # build data frame with predictions on the original scale
-    preds_df['inc_4rt_cs_target_hat'] = preds_df['inc_4rt_cs'] + preds_df['delta_hat']
-    preds_df['inc_4rt_target_hat'] = (preds_df['inc_4rt_cs_target_hat'] + preds_df['inc_4rt_center_factor']) * (preds_df['inc_4rt_scale_factor'] + 0.01)
-    preds_df['value'] = (np.maximum(preds_df['inc_4rt_target_hat'], 0.0) ** 4 - 0.01 - 0.75**4) * preds_df['pop'] / 100000
+    preds_df['inc_trans_cs_target_hat'] = preds_df['inc_trans_cs'] + preds_df['delta_hat']
+    preds_df['inc_trans_target_hat'] = (preds_df['inc_trans_cs_target_hat'] + preds_df['inc_trans_center_factor']) * (preds_df['inc_trans_scale_factor'] + 0.01)
+    if model_config.power_transform == '4rt':
+        inv_power = 4
+    elif model_config.power_transform is None:
+        inv_power = 1
+    else:
+        raise ValueError('unsupported power_transform: must be "4rt" or None')
+    
+    preds_df['value'] = (np.maximum(preds_df['inc_trans_target_hat'], 0.0) ** inv_power - 0.01 - 0.75**4) * preds_df['pop'] / 100000
     preds_df['value'] = np.maximum(preds_df['value'], 0.0)
     
     # get predictions into the format needed for FluSight hub submission
