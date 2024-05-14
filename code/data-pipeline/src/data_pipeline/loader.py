@@ -477,7 +477,7 @@ class FluDataLoader():
     # - center relative to location- and source- specific mean
     #   (note non-standard order of center/scale)
     if power_transform is None:
-        df['inc_trans'] = df['inc']
+        df['inc_trans'] = df['inc'] + 0.01
     elif power_transform == '4rt':
         df['inc_trans'] = (df['inc'] + 0.01)**0.25
     
