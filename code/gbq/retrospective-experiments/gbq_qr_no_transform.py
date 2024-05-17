@@ -10,7 +10,7 @@
 
 import os
 import datetime
-from multiprocessing import Pool
+from multiprocessing import freeze_support, Pool
 
 
 def run_command(command):
@@ -28,4 +28,5 @@ commands = [f'python gbq.py --ref_date {ref_date} --output_root {output_root} --
                 for ref_date in missing_ref_dates]
 
 with Pool(processes=2) as pool:
+    freeze_support()
     pool.map(run_command, commands)
