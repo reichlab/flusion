@@ -14,5 +14,8 @@ base_config = SimpleNamespace(
   sources = ['flusurvnet', 'hhs', 'ilinet'],
 
   # fit locations separately or jointly
-  fit_locations_separately = False
+  fit_locations_separately = False,
+
+  # power transform applied to surveillance signals
+  power_transform = '4rt'
 )

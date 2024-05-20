@@ -57,7 +57,7 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
             {
                 'fun': 'windowed_taylor_coefs',
                 'args': {
-                    'columns': 'inc_4rt_cs',
+                    'columns': 'inc_trans_cs',
                     'taylor_degree': 2,
                     'window_align': 'trailing',
                     'window_size': [4, 6],
@@ -67,7 +67,7 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
             {
                 'fun': 'windowed_taylor_coefs',
                 'args': {
-                    'columns': 'inc_4rt_cs',
+                    'columns': 'inc_trans_cs',
                     'taylor_degree': 1,
                     'window_align': 'trailing',
                     'window_size': [3, 5],
@@ -77,7 +77,7 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
             {
                 'fun': 'rollmean',
                 'args': {
-                    'columns': 'inc_4rt_cs',
+                    'columns': 'inc_trans_cs',
                     'group_columns': ['location'],
                     'window_size': [2, 4]
                 }
@@ -91,7 +91,7 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
             {
                 'fun': 'lag',
                 'args': {
-                    'columns': ['inc_4rt_cs'] + new_feat_names,
+                    'columns': ['inc_trans_cs'] + new_feat_names,
                     'lags': [1, 2]
                 }
             }
@@ -105,7 +105,7 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
             {
                 'fun': 'horizon_targets',
                 'args': {
-                    'columns': 'inc_4rt_cs',
+                    'columns': 'inc_trans_cs',
                     'horizons': [(i + 1) for i in range(max_horizon)]
                 }
             }
@@ -114,7 +114,7 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
     
     # we will model the differences between the prediction target and the most
     # recent observed value
-    df['delta_target'] = df['inc_4rt_cs_target'] - df['inc_4rt_cs']
+    df['delta_target'] = df['inc_trans_cs_target'] - df['inc_trans_cs']
     
     # if requested, drop features that involve absolute level
     if not incl_level_feats:
@@ -124,9 +124,9 @@ def create_features_and_targets(df, incl_level_feats, max_horizon, curr_feat_nam
 
 
 def _drop_level_feats(feat_names):
-    level_feats = ['inc_4rt_cs', 'inc_4rt_cs_lag1', 'inc_4rt_cs_lag2'] + \
+    level_feats = ['inc_trans_cs', 'inc_trans_cs_lag1', 'inc_trans_cs_lag2'] + \
                   fnmatch.filter(feat_names, '*taylor_d?_c0*') + \
-                  fnmatch.filter(feat_names, '*inc_4rt_cs_rollmean*')
+                  fnmatch.filter(feat_names, '*inc_trans_cs_rollmean*')
     feat_names = [f for f in feat_names if f not in level_feats]
     return feat_names
 

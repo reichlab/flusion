@@ -410,7 +410,8 @@ class FluDataLoader():
     return df_flusurv
 
 
-  def load_data(self, sources=None, flusurvnet_kwargs=None, hhs_kwargs=None, ilinet_kwargs=None):
+  def load_data(self, sources=None, flusurvnet_kwargs=None, hhs_kwargs=None, ilinet_kwargs=None,
+                power_transform='4rt'):
     '''
     Load influenza data and transform to a scale suitable for input to models.
 
@@ -422,6 +423,7 @@ class FluDataLoader():
     flusurvnet_kwargs: dictionary of keyword arguments to pass on to `load_flusurv_rates`
     hhs_kwargs: dictionary of keyword arguments to pass on to `load_hhs`
     ilinet_kwargs: dictionary of keyword arguments to pass on to `load_ilinet`
+    power_transform: string specifying power transform to use: '4rt' or `None`
 
     Returns
     -------
@@ -438,6 +440,9 @@ class FluDataLoader():
     
     if ilinet_kwargs is None:
         ilinet_kwargs = {}
+    
+    if power_transform not in ['4rt', None]:
+        raise ValueError('Only None and "4rt" are supported for the power_transform argument.')
     
     us_census = self.load_us_census()
     fips_mappings = pd.read_csv(self.data_raw / 'fips-mappings/fips_mappings.csv')
@@ -471,23 +476,27 @@ class FluDataLoader():
     # - divide by location- and source- specific 95th percentile
     # - center relative to location- and source- specific mean
     #   (note non-standard order of center/scale)
-    df['inc_4rt'] = (df['inc'] + 0.01)**0.25
-    df['inc_4rt_scale_factor'] = df \
+    if power_transform is None:
+        df['inc_trans'] = df['inc'] + 0.01
+    elif power_transform == '4rt':
+        df['inc_trans'] = (df['inc'] + 0.01)**0.25
+    
+    df['inc_trans_scale_factor'] = df \
         .assign(
-            inc_4rt_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
-                                                   np.nan,
-                                                   x['inc_4rt'])) \
-        .groupby(['source', 'location'])['inc_4rt_in_season'] \
+            inc_trans_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
+                                                     np.nan,
+                                                     x['inc_trans'])) \
+        .groupby(['source', 'location'])['inc_trans_in_season'] \
         .transform(lambda x: x.quantile(0.95))
     
-    df['inc_4rt_cs'] = df['inc_4rt'] / (df['inc_4rt_scale_factor'] + 0.01)
-    df['inc_4rt_center_factor'] = df \
+    df['inc_trans_cs'] = df['inc_trans'] / (df['inc_trans_scale_factor'] + 0.01)
+    df['inc_trans_center_factor'] = df \
         .assign(
-            inc_4rt_cs_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
-                                                      np.nan,
-                                                      x['inc_4rt_cs'])) \
-        .groupby(['source', 'location'])['inc_4rt_cs_in_season'] \
+            inc_trans_cs_in_season = lambda x: np.where((x['season_week'] < 10) | (x['season_week'] > 45),
+                                                        np.nan,
+                                                        x['inc_trans_cs'])) \
+        .groupby(['source', 'location'])['inc_trans_cs_in_season'] \
         .transform(lambda x: x.mean())
-    df['inc_4rt_cs'] = df['inc_4rt_cs'] - df['inc_4rt_center_factor']
+    df['inc_trans_cs'] = df['inc_trans_cs'] - df['inc_trans_center_factor']
     
     return(df)
