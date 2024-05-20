@@ -9,7 +9,10 @@ base_config = SimpleNamespace(
 
   # adjustments to reporting
   reporting_adj = True,
-  
+
   # data sources and adjustments for reporting issues
-  sources = ['flusurvnet', 'hhs', 'ilinet']
+  sources = ['flusurvnet', 'hhs', 'ilinet'],
+
+  # fit locations separately or jointly
+  fit_locations_separately = False
 )
