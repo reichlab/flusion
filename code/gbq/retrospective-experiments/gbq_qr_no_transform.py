@@ -27,6 +27,11 @@ output_root = '../../retrospective-hub/model-output'
 commands = [f'python gbq.py --ref_date {ref_date} --output_root {output_root} --model_name gbq_qr_no_transform' \
                 for ref_date in missing_ref_dates]
 
-with Pool(processes=2) as pool:
+def main():
+    with Pool(processes=2) as pool:
+        freeze_support()
+        pool.map(run_command, commands)
+
+if __name__ == '__main__':
     freeze_support()
-    pool.map(run_command, commands)
+    main()
