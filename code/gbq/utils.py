@@ -32,7 +32,9 @@ def parse_args():
     
     run_config = SimpleNamespace(
         ref_date=ref_date,
-        output_root=args.output_root
+        output_root=args.output_root,
+        artifact_store_root=args.artifact_store_root,
+        save_feat_importance=args.save_feat_importance
     )
     
     if args.short_run:
@@ -79,6 +81,13 @@ def _make_parser():
                         help='Path to a directory in which model outputs are saved',
                         type=lambda s: Path(s),
                         default=Path('../../submissions-hub/model-output'))
+    parser.add_argument('--artifact_store_root',
+                        help='Path to a directory in which artifacts related to model runs are saved',
+                        type=lambda s: Path(s),
+                        default=Path('../../submissions-hub/model-artifacts'))
+    parser.add_argument('--save_feat_importance',
+                        help='Flag to save feature importances',
+                        action='store_true')
     
     return parser
 
