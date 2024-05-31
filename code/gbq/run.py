@@ -276,6 +276,6 @@ def _quantile_noncrossing(preds_df, gcols):
 def _build_save_path(root, run_config, model_config, subdir=None):
     save_dir = root / f'UMass-{model_config.model_name}'
     if subdir is not None:
-        model_dir = save_dir / subdir
+        save_dir = save_dir / subdir
     save_dir.mkdir(parents=True, exist_ok=True)
     return save_dir / f'{str(run_config.ref_date)}-UMass-{model_config.model_name}.csv'
