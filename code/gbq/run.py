@@ -65,9 +65,12 @@ def run_gbq_flu_model(model_config, run_config):
                                           df_train, df_test, feat_names)
     
     # save
-    model_dir = run_config.output_root / f'UMass-{model_config.model_name}'
-    model_dir.mkdir(parents=True, exist_ok=True)
-    preds_df.to_csv(model_dir / f'{str(run_config.ref_date)}-UMass-{model_config.model_name}.csv', index=False)
+    save_path = _build_save_path(
+        root=run_config.output_root,
+        run_config=run_config,
+        model_config=model_config
+    )
+    preds_df.to_csv(save_path, index=False)
 
 
 def _train_gbq_and_predict(model_config, run_config,
@@ -181,6 +184,8 @@ def _get_test_quantile_predictions(model_config, run_config,
     
     train_seasons = df_train['season'].unique()
     
+    feat_importance = list()
+    
     for b in tqdm(range(model_config.num_bags), 'Bag number'):
         # get indices of observations that are in bag
         bag_seasons = rng.choice(
@@ -197,9 +202,28 @@ def _get_test_quantile_predictions(model_config, run_config,
                 alpha=q_level,
                 random_state=lgb_seeds[b, q_ind])
             model.fit(X=x_train.loc[bag_obs_inds, :], y=y_train.loc[bag_obs_inds])
+
+            feat_importance.append(
+                pd.DataFrame({
+                    'feat': x_train.columns,
+                    'importance': model.feature_importances_,
+                    'b': b,
+                    'q_level': q_level
+                })
+            )
             
             # test set predictions
             test_preds_by_bag[:, b, q_ind] = model.predict(X=x_test)
+    
+    # combine and save feature importance scores
+    if run_config.save_feat_importance:
+        feat_importance = pd.concat(feat_importance, axis=0)
+        save_path = _build_save_path(
+            root=run_config.artifact_store_root,
+            run_config=run_config,
+            model_config=model_config,
+            subdir='feat_importance')
+        feat_importance.to_csv(save_path, index=False)
     
     # combined predictions across bags: median
     test_pred_qs = np.median(test_preds_by_bag, axis=1)
@@ -247,3 +271,11 @@ def _quantile_noncrossing(preds_df, gcols):
         .reset_index()
     
     return preds_df
+
+
+def _build_save_path(root, run_config, model_config, subdir=None):
+    save_dir = root / f'UMass-{model_config.model_name}'
+    if subdir is not None:
+        save_dir = save_dir / subdir
+    save_dir.mkdir(parents=True, exist_ok=True)
+    return save_dir / f'{str(run_config.ref_date)}-UMass-{model_config.model_name}.csv'
